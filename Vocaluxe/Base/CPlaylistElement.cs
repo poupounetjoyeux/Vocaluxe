@@ -42,7 +42,7 @@ namespace Vocaluxe.Base
 
         public float End => HasMetaData ? Song.End : 0f;
 
-        public CTextureRef Cover => HasMetaData ? Song.CoverTextureSmall : CCover.NoCover;
+        public CTextureRef Cover => HasMetaData ? Song.CoverTexture : CCover.NoCover;
 
         public float VideoGap => HasMetaData ? Song.VideoGap : 0;
 
