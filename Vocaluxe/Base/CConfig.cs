@@ -23,6 +23,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml.Serialization;
+using FFmpeg.AutoGen;
 using Vocaluxe.Lib.Sound.Record;
 using Vocaluxe.Lib.Webcam;
 using VocaluxeLib;
@@ -143,6 +144,10 @@ namespace Vocaluxe.Base
             public string FFmpegPath;
             [DefaultValue(EVideoDownscaleResolution.TR_CONFIG_SCALING_DISABLED)]
             public EVideoDownscaleResolution VideoDownscaleResolution;
+            [DefaultValue(EOffOn.TR_CONFIG_ON)]
+            public EOffOn EnableHardwareAcceleration;
+            [DefaultValue(AVHWDeviceType.AV_HWDEVICE_TYPE_NONE)]
+            public AVHWDeviceType PreferredHardwareAccelerationType;
         }
 
         public struct SConfigSound

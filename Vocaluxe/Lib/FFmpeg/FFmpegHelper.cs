@@ -1,7 +1,11 @@
-﻿using System;
+﻿using FFmpeg.AutoGen;
+using System;
+using System.Collections.Generic;
 using System.IO;
-using FFmpeg.AutoGen;
+using System.Linq;
+using System.Text;
 using Vocaluxe.Base;
+using VocaluxeLib;
 using VocaluxeLib.Log;
 
 namespace Vocaluxe.Lib.FFmpeg
@@ -10,7 +14,14 @@ namespace Vocaluxe.Lib.FFmpeg
     {
         public const int IOBufferSize = 4096;
 
-        internal static void PrepareFFmpegBinaries()
+        // https://ffmpeg.org/doxygen/trunk/codec_8h_source.html#l00420
+        public const int AvCodecHwConfigMethodHwDeviceCtx = 0x01;
+
+        private static readonly HashSet<AVHWDeviceType> _HardwareDeviceTypes = new();
+        public static IReadOnlyCollection<AVHWDeviceType> HardwareDeviceTypes => _HardwareDeviceTypes;
+        public static bool CanUseHardwareAcceleration => _HardwareDeviceTypes.Count > 0;
+
+        internal static void PrepareFFmpeg()
         {
             var ffmpegPath = CConfig.Config.FFmpeg.FFmpegPath;
             if (string.IsNullOrEmpty(ffmpegPath))
@@ -27,6 +38,36 @@ namespace Vocaluxe.Lib.FFmpeg
             }
 
             CLog.Information($"FFmpeg binaries version {version} found in {ffmpegPath}");
+            _RegisterHardwareAccelerationDeviceTypes();
+        }
+
+        private static void _RegisterHardwareAccelerationDeviceTypes()
+        {
+            if (CConfig.Config.FFmpeg.EnableHardwareAcceleration == EOffOn.TR_CONFIG_OFF)
+            {
+                CLog.Information("Hardware acceleration is disabled");
+                return;
+            }
+
+            foreach (var hardwareType in _RetrieveAvailableHardwareTypes())
+            {
+                _HardwareDeviceTypes.Add(hardwareType);
+                CLog.Information($"FFmpeg hardware type {ffmpeg.av_hwdevice_get_type_name(hardwareType)} is usable on your machine");
+            }
+
+            if (!CanUseHardwareAcceleration)
+            {
+                CLog.Information("Hardware acceleration is enabled, but there is no device available for that on your machine");
+            }
+        }
+
+        private static IEnumerable<AVHWDeviceType> _RetrieveAvailableHardwareTypes()
+        {
+            var type = AVHWDeviceType.AV_HWDEVICE_TYPE_NONE;
+            while ((type = ffmpeg.av_hwdevice_iterate_types(type)) != AVHWDeviceType.AV_HWDEVICE_TYPE_NONE)
+            {
+                yield return type;
+            }
         }
 
         private static string _TryGetVersion()

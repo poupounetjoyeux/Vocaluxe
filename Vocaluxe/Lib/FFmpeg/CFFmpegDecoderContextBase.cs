@@ -7,9 +7,10 @@ namespace Vocaluxe.Lib.FFmpeg
 {
     internal abstract unsafe class CFFmpegDecoderContextBase : IDisposable
     {
+        private readonly object _SourceLocker = new();
         private bool _Initialized;
         private Stream _SourceStream;
-
+        
         private avio_alloc_context_read_packet _ReadSourceStreamCallback;
         private avio_alloc_context_seek _SeekSourceStreamCallback;
         private AVIOContext* _IOContext;
@@ -58,7 +59,7 @@ namespace Vocaluxe.Lib.FFmpeg
                 return false;
             }
 
-            if (!_InitCodeCodecContext(codec))
+            if (!_InitCodecContext(codec))
             {
                 _Free();
                 return false;
@@ -83,7 +84,7 @@ namespace Vocaluxe.Lib.FFmpeg
                 return ffmpeg.AVERROR_EOF;
             }
 
-            lock (_SourceStream)
+            lock (_SourceLocker)
             {
                 var finalBufferSize = (int)Math.Min(bufferSize, _SourceStream.Length - _SourceStream.Position);
                 if (finalBufferSize == 0)
@@ -107,7 +108,7 @@ namespace Vocaluxe.Lib.FFmpeg
                 return -1;
             }
 
-            lock (_SourceStream)
+            lock (_SourceLocker)
             {
                 return whence == ffmpeg.AVSEEK_SIZE ?
                     _SourceStream.Length :
@@ -183,7 +184,18 @@ namespace Vocaluxe.Lib.FFmpeg
             return true;
         }
 
-        private bool _InitCodeCodecContext(AVCodec* codec)
+        protected virtual bool _CustomizeCodecContext(AVCodec* codec, AVCodecContext* codecContext)
+        {
+            if (ffmpeg.avcodec_parameters_to_context(codecContext, _AvStream->codecpar) < 0)
+            {
+                CLog.Error("Unable to fill codec parameters");
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool _InitCodecContext(AVCodec* codec)
         {
             _CodecContext = ffmpeg.avcodec_alloc_context3(codec);
             if (_CodecContext == null)
@@ -192,9 +204,8 @@ namespace Vocaluxe.Lib.FFmpeg
                 return false;
             }
 
-            if (ffmpeg.avcodec_parameters_to_context(_CodecContext, _AvStream->codecpar) < 0)
+            if (!_CustomizeCodecContext(codec, _CodecContext))
             {
-                CLog.Error("Unable to fill codec parameters");
                 return false;
             }
 

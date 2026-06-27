@@ -51,7 +51,7 @@ namespace Vocaluxe.Screens
         public override void Init()
         {
             base.Init();
-            FFmpegHelper.PrepareFFmpegBinaries();
+            FFmpegHelper.PrepareFFmpeg();
             _ThemeTexts = new string[] { _TextStatus, _TextProgramName };
             _Intros = new CVideoPlayer[_IntroVideo.Length];
             for (var i = 0; i < _Intros.Length; i++)
