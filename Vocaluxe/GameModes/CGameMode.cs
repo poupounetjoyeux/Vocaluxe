@@ -22,10 +22,10 @@ namespace Vocaluxe.GameModes
 {
     abstract class CGameMode : IGameMode
     {
-        private CSong _LastSong;
+        private ISong _LastSong;
         private int _LastSongId = -1;
 
-        public CSong GetSong(int songId)
+        public ISong GetSong(int songId)
         {
             if (songId != _LastSongId)
             {
@@ -37,6 +37,6 @@ namespace Vocaluxe.GameModes
             return _LastSong;
         }
 
-        protected abstract CSong _PrepareSong(CSong song);
+        protected abstract ISong _PrepareSong(ISong song);
     }
 }

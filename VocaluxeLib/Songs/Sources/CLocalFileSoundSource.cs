@@ -1,8 +1,7 @@
 ﻿using System;
 using System.IO;
-using VocaluxeLib.Songs.Sources;
 
-namespace Vocaluxe.Lib.Sound.Sources
+namespace VocaluxeLib.Songs.Sources
 {
     public sealed class CLocalFileSoundSource : ISoundSource, IEquatable<CLocalFileSoundSource>
     {

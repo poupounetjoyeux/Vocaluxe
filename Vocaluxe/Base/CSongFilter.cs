@@ -20,18 +20,19 @@ using System.Collections.Generic;
 using System.Linq;
 using VocaluxeLib;
 using VocaluxeLib.Songs;
+using VocaluxeLib.Songs.UltraStar;
 
 namespace Vocaluxe.Base
 {
     class CSongFilter : CObservable
     {
-        private readonly List<CSong> _FilteredSongs = new List<CSong>();
+        private readonly List<ISong> _FilteredSongs = new List<ISong>();
 
         private String _SearchString = string.Empty;
         private EDuetOptions _DuetOptions = EDuetOptions.All;
         private int _PlaylistId = -1;
 
-        public List<CSong> FilteredSongs
+        public List<ISong> FilteredSongs
         {
             get
             {
@@ -230,14 +231,17 @@ namespace Vocaluxe.Base
                             _FilteredSongs.Add(song);
                         }
 
-                        if (searchForFileName != null && song.FileName.ToUpper().Contains(searchForFileName))
+                        if (song is CUltraStarSong usSong)
                         {
-                            _FilteredSongs.Add(song);
-                        }
+                            if (searchForFileName != null && usSong.FileName.ToUpper().Contains(searchForFileName))
+                            {
+                                _FilteredSongs.Add(song);
+                            }
 
-                        if (searchForFolderName != null && song.FolderName.ToUpper().Contains(searchForFolderName))
-                        {
-                            _FilteredSongs.Add(song);
+                            if (searchForFolderName != null && usSong.FolderName.ToUpper().Contains(searchForFolderName))
+                            {
+                                _FilteredSongs.Add(song);
+                            }
                         }
 
                         if (searchForCreator != null && song.Creators.Any(t => t.ToUpper().Contains(searchForCreator)))

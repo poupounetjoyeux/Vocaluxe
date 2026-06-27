@@ -21,6 +21,6 @@ namespace Vocaluxe.GameModes
 {
     interface IGameMode
     {
-        CSong GetSong(int songId);
+        ISong GetSong(int songId);
     }
 }

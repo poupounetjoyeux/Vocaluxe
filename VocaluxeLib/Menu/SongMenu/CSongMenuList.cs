@@ -22,6 +22,7 @@ using System.Windows.Forms;
 using VocaluxeLib.Draw;
 using VocaluxeLib.PartyModes;
 using VocaluxeLib.Songs;
+using VocaluxeLib.Songs.UltraStar;
 
 namespace VocaluxeLib.Menu.SongMenu
 {
@@ -261,10 +262,10 @@ namespace VocaluxeLib.Menu.SongMenu
         {
             //First hide everything so we just have to set what we actually want
             _CoverBig.Texture = _CoverBigBGTexture;
-            _Artist.Text = string.Empty;
-            _Title.Text = string.Empty;
-            _SongLength.Text = string.Empty;
-            _SongYear.Text = string.Empty;
+            _Artist.Text = String.Empty;
+            _Title.Text = String.Empty;
+            _SongLength.Text = String.Empty;
+            _SongYear.Text = String.Empty;
             _DuetIcon.Visible = false;
             _RapIcon.Visible = false;
             _VideoIcon.Visible = false;
@@ -305,9 +306,9 @@ namespace VocaluxeLib.Menu.SongMenu
                 _SongYear.Text = song.Year;
                 _DuetIcon.Visible = song.IsDuet;
                 _RapIcon.Visible = song.IsRap;
-                _VideoIcon.Visible = song.Video != "";
-                _MedleyCalcIcon.Visible = song.Medley.Source == EDataSource.Calculated;
-                _MedleyTagIcon.Visible = song.Medley.Source == EDataSource.Tag;
+                _VideoIcon.Visible = song.HasVideo;
+                _MedleyCalcIcon.Visible = song.Medley?.Source == EDataSource.Calculated;
+                _MedleyTagIcon.Visible = song.Medley?.Source == EDataSource.Tag;
                 _InstrumentalIcon.Visible = song.HasInstrumental;
                 _VocalsIcon.Visible = song.HasVocals;
 
@@ -331,7 +332,7 @@ namespace VocaluxeLib.Menu.SongMenu
             }
         }
 
-        private void _UpdateLength(CSong song)
+        private void _UpdateLength(ISong song)
         {
             if (song == null)
             {

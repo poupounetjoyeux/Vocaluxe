@@ -24,6 +24,7 @@ using Microsoft.Data.Sqlite;
 using Vocaluxe.Base;
 using VocaluxeLib;
 using VocaluxeLib.Log;
+using VocaluxeLib.Songs;
 
 namespace Vocaluxe.Lib.Database
 {
@@ -90,10 +91,8 @@ namespace Vocaluxe.Lib.Database
             //Do nothing
         }
 
-        public bool GetDataBaseSongInfos(string artist, string title, out int numPlayed, out DateTime dateAdded, out int highscoreId)
+        public CSongInfos GetSongInfos(string artist, string title)
         {
-            string sArtist;
-            string sTitle;
             int songId;
             using (var connection = new SqliteConnection())
             {
@@ -103,17 +102,16 @@ namespace Vocaluxe.Lib.Database
                 {
                     connection.Open();
                 }
-                catch (Exception) { }
-
-                using (var command = new SqliteCommand())
+                catch (Exception)
                 {
-                    command.Connection = connection;
-                    songId = _GetDataBaseSongId(artist, title, 0, command);
-                    highscoreId = songId;
+                    return null;
                 }
+
+                using var command = connection.CreateCommand();
+                songId = _GetDataBaseSongId(artist, title, 0, command);
             }
 
-            return _GetDataBaseSongInfos(songId, out sArtist, out sTitle, out numPlayed, out dateAdded, _FilePath);
+            return _GetDataBaseSongInfos(songId, out _, out _, _FilePath);
         }
 
         public void IncreaseSongCounter(int dataBaseSongId)
@@ -137,70 +135,65 @@ namespace Vocaluxe.Lib.Database
         }
 
         public int AddScore(string playerName, int score, int lineNr, long date, int medley, int duet, int shortSong, int difficulty,
-            string artist, string title, int numPlayed, string filePath)
+            int numPlayed, string artist, string title, string filePath)
         {
-            using (var connection = new SqliteConnection())
+            using var connection = new SqliteConnection();
+            connection.ConnectionString = "Data Source=" + filePath;
+
+            try
             {
-                connection.ConnectionString = "Data Source=" + filePath;
-
-                try
-                {
-                    connection.Open();
-                }
-                catch (Exception)
-                {
-                    return -1;
-                }
-
-                using (var command = new SqliteCommand())
-                {
-                    command.Connection = connection;
-                    var dataBaseSongId = _GetDataBaseSongId(artist, title, numPlayed, command);
-                    var result = _AddScore(playerName, score, lineNr, date, medley, duet, shortSong, difficulty, dataBaseSongId, command);
-                    return result;
-                }
+                connection.Open();
             }
+            catch (Exception)
+            {
+                return -1;
+            }
+
+            using var command = connection.CreateCommand();
+            var songId = _GetDataBaseSongId(artist, title, numPlayed, command);
+            var result = _AddScore(playerName, score, lineNr, date, medley, duet, shortSong, difficulty, songId, command);
+            return result;
         }
 
         public int AddScore(SPlayer player)
         {
-            using (var connection = new SqliteConnection())
+            var songInfos = CSongs.GetSong(player.SongId).Infos;
+            if (songInfos == null)
             {
-                connection.ConnectionString = "Data Source=" + _FilePath;
-
-                try
-                {
-                    connection.Open();
-                }
-                catch (Exception)
-                {
-                    return -1;
-                }
-
-                var medley = 0;
-                var duet = 0;
-                var shortSong = 0;
-                switch (player.GameMode)
-                {
-                    case EGameMode.TR_GAMEMODE_MEDLEY:
-                        medley = 1;
-                        break;
-                    case EGameMode.TR_GAMEMODE_DUET:
-                        duet = 1;
-                        break;
-                    case EGameMode.TR_GAMEMODE_SHORTSONG:
-                        shortSong = 1;
-                        break;
-                }
-
-                using (var command = new SqliteCommand())
-                {
-                    command.Connection = connection;
-                    var dataBaseSongId = CSongs.GetSong(player.SongId).DataBaseSongId;
-                    return _AddScore(CProfiles.GetPlayerName(player.ProfileId), (int)Math.Round(player.Points), player.VoiceNr, player.DateTicks, medley,
-                        duet, shortSong, (int)CProfiles.GetDifficulty(player.ProfileId), dataBaseSongId, command);
-                }
+                return - 1;
             }
+
+            using var connection = new SqliteConnection();
+            connection.ConnectionString = "Data Source=" + _FilePath;
+
+            try
+            {
+                connection.Open();
+            }
+            catch (Exception)
+            {
+                return -1;
+            }
+
+            var medley = 0;
+            var duet = 0;
+            var shortSong = 0;
+            switch (player.GameMode)
+            {
+                case EGameMode.TR_GAMEMODE_MEDLEY:
+                    medley = 1;
+                    break;
+                case EGameMode.TR_GAMEMODE_DUET:
+                    duet = 1;
+                    break;
+                case EGameMode.TR_GAMEMODE_SHORTSONG:
+                    shortSong = 1;
+                    break;
+            }
+
+            using var command = connection.CreateCommand();
+            return _AddScore(CProfiles.GetPlayerName(player.ProfileId), (int)Math.Round(player.Points), player.VoiceNr, player.DateTicks, medley,
+                duet, shortSong, (int)CProfiles.GetDifficulty(player.ProfileId), songInfos.DataBaseSongId, command);
         }
 
         private int _AddScore(string playerName, int score, int lineNr, long date, int medley, int duet, int shortSong, int difficulty,
@@ -400,26 +393,19 @@ namespace Vocaluxe.Lib.Database
             return _GetDataBaseSongId(song.Artist, song.Title, 0, command);
         }
 
-        private int _GetDataBaseSongId(string artist, string title, int defNumPlayed, SqliteCommand command)
+        private static int _GetDataBaseSongId(string artist, string title, int defNumPlayed, SqliteCommand command)
         {
             command.CommandText = "SELECT id FROM Songs WHERE [Title] = @title AND [Artist] = @artist";
             command.Parameters.Clear();
             command.Parameters.AddWithValue("@title", title ?? string.Empty);
             command.Parameters.AddWithValue("@artist", artist ?? string.Empty);
 
-            var reader = command.ExecuteReader();
-
-            if (reader != null && reader.HasRows)
+            using (var reader = command.ExecuteReader())
             {
-                reader.Read();
-                var id = reader.GetInt32(0);
-                reader.Dispose();
-                return id;
-            }
-
-            if (reader != null)
-            {
-                reader.Close();
+                if (reader.Read())
+                {
+                    return reader.GetInt32(0);
+                }
             }
 
             command.CommandText = "INSERT INTO Songs (Title, Artist, NumPlayed, DateAdded) " +
@@ -431,97 +417,68 @@ namespace Vocaluxe.Lib.Database
             command.Parameters.AddWithValue("@dateadded", DateTime.Now.Ticks);
             command.ExecuteNonQuery();
 
-            command.CommandText = "SELECT id FROM Songs WHERE [Title] = @title AND [Artist] = @artist";
+            command.CommandText = "SELECT last_insert_rowid()";
             command.Parameters.Clear();
-            command.Parameters.AddWithValue("@title", title ?? string.Empty);
-            command.Parameters.AddWithValue("@artist", artist ?? string.Empty);
-
-            reader = command.ExecuteReader();
-
-            if (reader != null)
+            using (var reader = command.ExecuteReader())
             {
-                reader.Read();
-                var id = reader.GetInt32(0);
-                reader.Dispose();
-                return id;
+                if (reader.Read())
+                {
+                    return reader.GetInt32(0);
+                }
             }
 
             return -1;
         }
 
-        private bool _GetDataBaseSongInfos(int songId, out string artist, out string title, out int numPlayed, out DateTime dateAdded, string filePath)
+        private static CSongInfos _GetDataBaseSongInfos(int songId, out string artist, out string title, string filePath)
         {
-            artist = string.Empty;
-            title = string.Empty;
-            numPlayed = 0;
-            dateAdded = DateTime.Today;
+            artist = null;
+            title = null;
+            using var connection = new SqliteConnection();
+            connection.ConnectionString = "Data Source=" + filePath;
 
-            using (var connection = new SqliteConnection())
+            try
             {
-                connection.ConnectionString = "Data Source=" + filePath;
-
-                try
-                {
-                    connection.Open();
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
-
-                using (var command = new SqliteCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = "SELECT Artist, Title, NumPlayed, DateAdded FROM Songs WHERE [id] = @id";
-                    command.Parameters.Clear();
-                    command.Parameters.AddWithValue("@id", songId);
-
-                    SqliteDataReader reader;
-                    try
-                    {
-                        reader = command.ExecuteReader();
-                    }
-                    catch (Exception)
-                    {
-                        return false;
-                    }
-
-                    if (reader != null && reader.HasRows)
-                    {
-                        reader.Read();
-
-                        if (!reader.IsDBNull(0))
-                        {
-                            artist = reader.GetString(0);
-                        }
-
-                        if (!reader.IsDBNull(1))
-                        {
-                            title = reader.GetString(1);
-                        }
-
-                        if (!reader.IsDBNull(2))
-                        {
-                            numPlayed = reader.GetInt32(2);
-                        }
-
-                        if (!reader.IsDBNull(3))
-                        {
-                            dateAdded = new DateTime(reader.GetInt64(3));
-                        }
-
-                        reader.Dispose();
-                        return true;
-                    }
-
-                    if (reader != null)
-                    {
-                        reader.Dispose();
-                    }
-                }
+                connection.Open();
+            }
+            catch (Exception)
+            {
+                return null;
             }
 
-            return false;
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Artist, Title, NumPlayed, DateAdded FROM Songs WHERE [id] = @id";
+            command.Parameters.Clear();
+            command.Parameters.AddWithValue("@id", songId);
+
+            using var reader = command.ExecuteReader();
+            if (!reader.Read())
+            {
+                return null;
+            }
+
+            if (!reader.IsDBNull(0))
+            {
+                artist = reader.GetString(0);
+            }
+
+            if (!reader.IsDBNull(1))
+            {
+                title = reader.GetString(1);
+            }
+
+            var infos = new CSongInfos(songId);
+            if (!reader.IsDBNull(0))
+            {
+                infos.NumPlayed = reader.GetInt32(0);
+            }
+
+            if (!reader.IsDBNull(1))
+            {
+                infos.DateAdded = new DateTime(reader.GetInt64(1));
+            }
+
+            return infos;
         }
 
         private void _CreateHighscoreDB(string filePath)
@@ -1123,47 +1080,39 @@ namespace Vocaluxe.Lib.Database
                 }
                 #endregion open db
 
-                using (var cmdSource = new SqliteCommand())
+                using (var cmdSource = connSource.CreateCommand())
                 {
-                    cmdSource.Connection = connSource;
-
                     #region import table scores
                     cmdSource.CommandText = "SELECT SongId, PlayerName, Score, LineNr, Date, Medley, Duet, ShortSong, Difficulty FROM Scores";
-                    var source = cmdSource.ExecuteReader();
-                    if (source == null)
-                    {
-                        return false;
-                    }
+                    using var sourceReader = cmdSource.ExecuteReader();
 
-                    if (source.FieldCount == 0)
+                    if (sourceReader.FieldCount == 0)
                     {
-                        source.Close();
+                        sourceReader.Close();
                         return true;
                     }
 
-                    while (source.Read())
+                    while (sourceReader.Read())
                     {
-                        var songid = source.GetInt32(0);
-                        var player = source.GetString(1);
-                        var score = source.GetInt32(2);
-                        var linenr = source.GetInt32(3);
-                        var date = source.GetInt64(4);
-                        var medley = source.GetInt32(5);
-                        var duet = source.GetInt32(6);
-                        var shortsong = source.GetInt32(7);
-                        var diff = source.GetInt32(8);
+                        var songId = sourceReader.GetInt32(0);
+                        var player = sourceReader.GetString(1);
+                        var score = sourceReader.GetInt32(2);
+                        var lineNr = sourceReader.GetInt32(3);
+                        var date = sourceReader.GetInt64(4);
+                        var medley = sourceReader.GetInt32(5);
+                        var duet = sourceReader.GetInt32(6);
+                        var shortSong = sourceReader.GetInt32(7);
+                        var diff = sourceReader.GetInt32(8);
 
-                        string artist, title;
-                        DateTime dateadded;
-                        int numplayed;
-                        if (_GetDataBaseSongInfos(songid, out artist, out title, out numplayed, out dateadded, sourceDBPath))
+                        var infos = _GetDataBaseSongInfos(songId, out var artist, out var title, sourceDBPath);
+                        if (infos != null)
                         {
-                            AddScore(player, score, linenr, date, medley, duet, shortsong, diff, artist, title, numplayed, _FilePath);
+                            AddScore(player, score, lineNr, date, medley, duet, shortSong, diff, infos.NumPlayed, artist, title, _FilePath);
                         }
                     }
                     #endregion import table scores
 
-                    source.Close();
+                    sourceReader.Close();
                 }
             }
 

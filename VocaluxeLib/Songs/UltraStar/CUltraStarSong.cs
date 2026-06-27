@@ -17,15 +17,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
 using VocaluxeLib.Draw;
 using VocaluxeLib.Log;
 using VocaluxeLib.Songs.Sources;
-using VocaluxeLib.Utils.Player;
 
-namespace VocaluxeLib.Songs
+namespace VocaluxeLib.Songs.UltraStar
 {
     public class CSongPointer
     {
@@ -45,7 +45,7 @@ namespace VocaluxeLib.Songs
     {
         Title = 1,
         Artist = 2,
-        AUDIO = 4,
+        Audio = 4,
         Instrumental = 5,
         Vocals = 6,
         Bpm = 8,
@@ -55,61 +55,38 @@ namespace VocaluxeLib.Songs
 
     public enum EDataSource
     {
-        None = 0,
         Calculated,
         Tag
     }
 
-    public struct SMedley
+    public partial class CUltraStarSong : ISong
     {
-        public EDataSource Source;
-        public int StartBeat;
-        public int EndBeat;
-        public float FadeInTime;
-        public float FadeOutTime;
-    }
-
-    public struct SShortEnd
-    {
-        public EDataSource Source;
-        public int EndBeat;
-    }
-
-    public struct SPreview
-    {
-        public EDataSource Source;
-        public float StartTime;
-    }
-
-    public partial class CSong : IEquatable<CSong>
-    {
-        private object _CoverLock = new();
+        private readonly object _CoverLock = new();
         private CTextureRef _CoverTexture;
 
-        public SMedley Medley;
+        private bool _CalculateMedley { get; set; } = true;
+        public CMedley Medley { get; private set; }
+        public CPreview Preview { get; private set; }
+        public CShortEnd ShortEnd { get; private set; }
 
-        private bool _CalculateMedley = true;
-        public SPreview Preview;
+        public Encoding Encoding { get; private set; } = new UTF8Encoding();
+        public bool ManualEncoding { get; private set; }
+        public string Folder { get; private set; } = string.Empty;
+        public string FolderName { get; private set; } = string.Empty;
+        public string FileName { get; private set; } = string.Empty;
+        public bool Relative { get; private set; }
 
-        public SShortEnd ShortEnd;
+        public string Audio { get; private set; } = string.Empty;
+        public string Instrumental { get; private set; } = string.Empty;
+        public string Vocals { get; private set; } = string.Empty;
+        public string Cover { get; private set; } = string.Empty;
+        public List<string> BackgroundFileNames { get; private set; } = new();
+        public string Video { get; private set; } = string.Empty;
 
-        public Encoding Encoding = new UTF8Encoding();
-        public bool ManualEncoding;
-        public string Folder = string.Empty;
-        public string FolderName = string.Empty;
-        public string FileName = string.Empty;
-        public bool Relative;
+        public EAspect VideoAspect { get; set; } = EAspect.Automatic;
 
-        public string Audio = string.Empty;
-        public string Instrumental = string.Empty;
-        public string Vocals = string.Empty;
-        public string Cover = string.Empty;
-        public readonly List<string> BackgroundFileNames = new();
-        public string Video = string.Empty;
-
-        public EAspect VideoAspect = EAspect.Automatic;
-
-        public bool NotesLoaded { get; private set; }
+        public string Title { get; private set; } = string.Empty;
+        public string Artist { get; private set; } = string.Empty;
 
         public CTextureRef CoverTexture
         {
@@ -120,173 +97,123 @@ namespace VocaluxeLib.Songs
             }
         }
 
-        public string Title = string.Empty;
-        public string Artist = string.Empty;
+        public string TitleSorting { get; private set; } = string.Empty;
+        public string ArtistSorting { get; private set; } = string.Empty;
 
-        public string TitleSorting = string.Empty;
-        public string ArtistSorting = string.Empty;
-
-        public string Version = "";
-        public string Length = ""; //Length set in song file, SHOULD match actual song length but is more a hint
-        public string Source = "";
-        public readonly List<string> UnknownTags = new();
+        public string Version { get; set; } = string.Empty;
+        public string Length { get; set; } = string.Empty; //Length set in song file, SHOULD match actual song length but is more a hint
+        public string Source { get; set; } = string.Empty;
+        public List<string> UnknownTags  { get; private set; } = new();
 
         /// <summary>
         ///     Start of the song in s (s in txt)
         /// </summary>
-        public float Start;
+        public float Start { get; set; }
         /// <summary>
         ///     End of the song in s (ms in txt)
         /// </summary>
-        public float End;
+        public float End { get; set; }
 
-        public float Bpm = 1f;
+        public float Bpm { get; private set; } = 1f;
         /// <summary>
         ///     Gap of the mp3 in s (ms in txt)
         /// </summary>
-        public float Gap;
+        public float Gap { get; private set; }
         /// <summary>
         ///     Gap of the video in s (s in txt)
         /// </summary>
-        public float VideoGap;
+        public float VideoGap { get; private set; }
 
         private string _Comment = "";
 
         // Sorting
-        public int Id;
-        private readonly bool _Visible = true;
-        private readonly int _CatIndex = -1;
-        private readonly bool _Selected;
+        public int Id { get; set; }
         public bool IsDuet => Notes.VoiceCount > 1;
-        public bool IsRap = false;
+        public bool IsRap { get; private set; }
+        public string Album { get; private set; } = string.Empty;
+        public string Year { get; private set; } = string.Empty;
 
-        public readonly List<string> Creators = new();
-        public readonly List<string> Editions = new();
-        public readonly List<string> Genres = new();
-        public readonly List<string> Tags = new();
-        public readonly List<string> Languages = new();
-        public string Album = "";
-        public string Year = "";
+        public bool HasCover => _FileExist(Cover);
+        public bool HasVideo => _FileExist(Video);
+        public bool HasVocals => _FileExist(Vocals);
+        public bool HasInstrumental => _FileExist(Instrumental);
 
-        public int DataBaseSongId = -1;
-        public DateTime DateAdded = DateTime.Today;
-        public int NumPlayed;
-        public int NumPlayedSession;
+        public List<string> Creators { get; private set; } = new();
+        public List<string> Editions { get; private set; } = new();
+        public List<string> Genres { get; private set; } = new();
+        public List<string> Tags { get; private set; } = new();
+        public List<string> Languages { get; private set; } = new();
 
         // Notes
-        public readonly CNotes Notes = new();
+        public bool NotesLoaded { get; private set; }
+        public CNotes Notes { get; private set; } = new();
 
-        public IList<EGameMode> AvailableGameModes
-        {
-            get
-            {
-                var gms = new List<EGameMode> { IsDuet ? EGameMode.TR_GAMEMODE_DUET : EGameMode.TR_GAMEMODE_NORMAL };
-                if (Medley.Source != EDataSource.None)
-                {
-                    gms.Add(EGameMode.TR_GAMEMODE_MEDLEY);
-                }
-
-                if (ShortEnd.Source != EDataSource.None)
-                {
-                    gms.Add(EGameMode.TR_GAMEMODE_SHORTSONG);
-                }
-
-                return gms;
-            }
-        }
-
-        /// <summary>
-        ///     Returns true if the requested game mode is available
-        /// </summary>
-        /// <param name="gameMode"></param>
-        /// <returns>true if the requested game mode is available</returns>
-        public bool IsGameModeAvailable(EGameMode gameMode)
-        {
-            return AvailableGameModes.Any(gm => gm == gameMode);
-        }
+        public CSongInfos Infos { get; private set; }
 
         //No point creating a song without a text file --> Use factory method LoadSong
-        private CSong() { }
+        private CUltraStarSong() { }
 
-        public CSong(CSong song)
+        public static CUltraStarSong LoadSong(string filePath)
         {
-            _CoverTexture = song._CoverTexture;
-
-            Medley = song.Medley;
-
-            _CalculateMedley = song._CalculateMedley;
-            Preview = song.Preview;
-
-            ShortEnd = song.ShortEnd;
-
-            Encoding = song.Encoding;
-            ManualEncoding = song.ManualEncoding;
-            Folder = song.Folder;
-            FolderName = song.FolderName;
-            FileName = song.FileName;
-            Relative = song.Relative;
-
-            Audio = song.Audio;
-            Instrumental = song.Instrumental;
-            Vocals = song.Vocals;
-            Cover = song.Cover;
-            BackgroundFileNames = song.BackgroundFileNames;
-            Video = song.Video;
-
-            VideoAspect = song.VideoAspect;
-            NotesLoaded = song.NotesLoaded;
-
-            Artist = song.Artist;
-            Title = song.Title;
-            ArtistSorting = song.ArtistSorting;
-            TitleSorting = song.TitleSorting;
-
-            Version = song.Version;
-            Length = song.Length;
-            Source = song.Source;
-            UnknownTags = new List<string>(song.UnknownTags);
-
-            Start = song.Start;
-            End = song.End;
-
-            Bpm = song.Bpm;
-            Gap = song.Gap;
-            VideoGap = song.VideoGap;
-
-            _Comment = song._Comment;
-
-            Id = song.Id;
-            _Visible = song._Visible;
-            _CatIndex = song._CatIndex;
-            _Selected = song._Selected;
-
-            Creators = new List<string>(song.Creators);
-            Editions = new List<string>(song.Editions);
-            Genres = new List<string>(song.Genres);
-            Tags = new List<string>(song.Tags);
-            Languages = new List<string>(song.Languages);
-            Album = song.Album;
-            Year = song.Year;
-
-            DataBaseSongId = song.DataBaseSongId;
-            DateAdded = song.DateAdded;
-            NumPlayed = song.NumPlayed;
-            NumPlayedSession = song.NumPlayedSession;
-
-            Notes = new CNotes(song.Notes);
-        }
-
-        public static CSong LoadSong(string filePath)
-        {
-            var song = new CSong();
-            var loader = new CSongLoader(song);
+            var song = new CUltraStarSong();
+            var loader = new CUltraStarSongLoader(song);
             return loader.InitPaths(filePath) && loader.ReadHeader() ? song : null;
         }
 
         public bool LoadNotes()
         {
-            var loader = new CSongLoader(this);
+            var loader = new CUltraStarSongLoader(this);
             return loader.ReadNotes();
+        }
+
+        public ISong Clone()
+        {
+            return new CUltraStarSong
+            {
+                _CoverTexture = _CoverTexture,
+                Medley = Medley != null ? new CMedley(Medley) : null,
+                _CalculateMedley = _CalculateMedley,
+                Preview = Preview != null ? new CPreview(Preview) : null,
+                ShortEnd = ShortEnd != null ? new CShortEnd(ShortEnd) : null,
+                Encoding = Encoding,
+                ManualEncoding = ManualEncoding,
+                Folder = Folder,
+                FolderName = FolderName,
+                FileName = FileName,
+                Relative = Relative,
+                Audio = Audio,
+                Instrumental = Instrumental,
+                Vocals = Vocals,
+                Cover = Cover,
+                BackgroundFileNames = BackgroundFileNames,
+                Video = Video,
+                VideoAspect = VideoAspect,
+                NotesLoaded = NotesLoaded,
+                Artist = Artist,
+                Title = Title,
+                ArtistSorting = ArtistSorting,
+                TitleSorting = TitleSorting,
+                Version = Version,
+                Length = Length,
+                Source = Source,
+                UnknownTags = UnknownTags.ToList(),
+                Start = Start,
+                End = End,
+                Bpm = Bpm,
+                Gap = Gap,
+                VideoGap = VideoGap,
+                _Comment = _Comment,
+                Id = Id,
+                Creators = Creators.ToList(),
+                Editions = Editions.ToList(),
+                Genres = Genres.ToList(),
+                Tags = Tags.ToList(),
+                Languages = Languages.ToList(),
+                Album = Album,
+                Year = Year,
+                Infos = Infos != null ? new CSongInfos(Infos) : null,
+                Notes = new CNotes(Notes)
+            };
         }
 
         public bool Save()
@@ -296,30 +223,32 @@ namespace VocaluxeLib.Songs
 
         public bool Save(string filePath)
         {
-            var writer = new CSongWriter(this);
+            var writer = new CUltraStarSongWriter(this);
             return writer.SaveFile(filePath);
         }
 
         public ISoundSource GetAudioSource()
         {
-            return new CSongFileSource(this, Audio);
+            var audioPath = _GetFilePathIfExist(Audio);
+            return audioPath == null ? null : new CSongFileSource(this, audioPath);
         }
 
         public ISoundSource GetInstrumentalSource()
         {
-            return new CSongFileSource(this, Instrumental);
+            var instrumentalPath = _GetFilePathIfExist(Instrumental);
+            return instrumentalPath == null ? null : new CSongFileSource(this, instrumentalPath);
         }
-
-        public bool HasInstrumental => _FileExist(Instrumental);
 
         public ISoundSource GetVocalsSource()
         {
-            return new CSongFileSource(this, Vocals);
+            var vocalsPath = _GetFilePathIfExist(Vocals);
+            return vocalsPath == null ? null : new CSongFileSource(this, vocalsPath);
         }
 
-        public bool HasVocals => _FileExist(Vocals);
-
-        public bool HasVideo => _FileExist(Video);
+        public string[] GetBackgroundUris()
+        {
+            return BackgroundFileNames.Select(_GetFilePathIfExist).Where(p => !string.IsNullOrEmpty(p)).ToArray();
+        }
 
         private bool _FileExist(string fileName)
         {
@@ -359,28 +288,49 @@ namespace VocaluxeLib.Songs
                     return;
                 }
 
-                if (!string.IsNullOrEmpty(Cover))
+                var coverPath = _GetFilePathIfExist(Cover);
+                if (!string.IsNullOrEmpty(coverPath))
                 {
-                    var coverPath = Path.Combine(Folder, Cover);
                     _CoverTexture = CBase.DataBase.GetCover(coverPath);
                     if (_CoverTexture != null)
                     {
                         // Cover loaded from DB cache
                         return;
                     }
-
-                    if (File.Exists(coverPath))
-                    {
-                        // Generate the cover then enqueue it in the CoverDB transaction
-                        using var bitmap = CHelper.LoadBitmap(coverPath);
-                        var coverData = CBase.Cover.GenerateCoverData(bitmap, out var finalSize);
-                        CBase.DataBase.EnqueueCoverToTransaction(coverPath, finalSize, coverData);
-                    }
+                    // Generate the cover then enqueue it in the CoverDB transaction
+                    using var bitmap = GetCoverBitmap();
+                    var coverData = CBase.Cover.GenerateCoverData(bitmap, out var finalSize);
+                    CBase.DataBase.EnqueueCoverToTransaction(coverPath, finalSize, coverData);
                 }
 
                 // Fallback on the default cover
                 _CoverTexture ??= CBase.Cover.GenerateCover(Title, ECoverGeneratorType.Song, null);
             }
+        }
+
+        public string GetTitleSorting(bool ignoreArticles)
+        {
+            if (ignoreArticles && !string.IsNullOrEmpty(TitleSorting))
+            {
+                return TitleSorting;
+            }
+
+            return Title;
+        }
+        public string GetArtistSorting(bool ignoreArticles)
+        {
+            if (ignoreArticles && !string.IsNullOrEmpty(ArtistSorting))
+            {
+                return ArtistSorting;
+            }
+
+            return Artist;
+        }
+
+        public Bitmap GetCoverBitmap()
+        {
+            var coverPath = _GetFilePathIfExist(Cover);
+            return CHelper.LoadBitmap(coverPath);
         }
 
         private void _CheckFiles()
@@ -489,11 +439,11 @@ namespace VocaluxeLib.Songs
         {
             if (IsDuet)
             {
-                Medley.Source = EDataSource.None;
+                Medley = null;
                 return;
             }
 
-            if (!_CalculateMedley || Medley.Source != EDataSource.None)
+            if (!_CalculateMedley || Medley != null)
             {
                 return;
             }
@@ -516,6 +466,7 @@ namespace VocaluxeLib.Songs
 
             var voice = Notes.GetVoice(0);
 
+            Medley = new CMedley();
             // set medley vars
             if (series.Count > 0 && series[longest].Length > CBase.Settings.GetMedleyMinSeriesLength())
             {
@@ -551,21 +502,24 @@ namespace VocaluxeLib.Songs
 
         private void _CheckPreview()
         {
-            if (Preview.Source != EDataSource.None)
+            if (Preview != null)
             {
                 return;
             }
 
-            if (Medley.Source != EDataSource.None)
+            if (Medley != null)
             {
-                Preview.StartTime = CBase.Game.GetTimeFromBeats(Medley.StartBeat, Bpm);
-                Preview.Source = EDataSource.Calculated;
+                Preview = new CPreview
+                {
+                    StartTime = CBase.Game.GetTimeFromBeats(Medley.StartBeat, Bpm),
+                    Source = EDataSource.Calculated
+                };
             }
         }
 
         private void _FindShortEnd()
         {
-            if (ShortEnd.Source != EDataSource.None)
+            if (ShortEnd != null)
             {
                 return;
             }
@@ -581,6 +535,7 @@ namespace VocaluxeLib.Songs
             //Calculate length of singing
             var stop = (voice.Lines[voice.Lines.Length - 1].LastNoteBeat - voice.Lines[0].FirstNote.StartBeat) / 2 + voice.Lines[0].FirstNote.StartBeat;
 
+            ShortEnd = new CShortEnd();
             //Check if stop is in series
             for (var i = 0; i < series.Count; i++)
             {
@@ -612,46 +567,6 @@ namespace VocaluxeLib.Songs
 
             ShortEnd.EndBeat = stop;
             ShortEnd.Source = EDataSource.Calculated;
-        }
-
-        public bool Equals(CSong other)
-        {
-            if (other is null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
-
-            return Id == other.Id;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj is null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            if (obj.GetType() != GetType())
-            {
-                return false;
-            }
-
-            return Equals((CSong)obj);
-        }
-
-        public override int GetHashCode()
-        {
-            return Id;
         }
     }
 }

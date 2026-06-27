@@ -30,8 +30,8 @@ namespace Vocaluxe.Base
     {
         private static bool _Initialized;
 
-        private static readonly CSongPlayer _BGPlayer = new CSongPlayer();
-        private static readonly CSongPlayer _PreviewPlayer = new CSongPlayer(true);
+        private static readonly CSongPlayer _BGPlayer = new();
+        private static readonly CSongPlayer _PreviewPlayer = new(true);
         private static CSongPlayer _CurPlayer;
 
         private static bool _OwnSongsAvailable;
@@ -352,7 +352,7 @@ namespace Vocaluxe.Base
             }
         }
 
-        public static void LoadPreview(CSong song, float start = -1f)
+        public static void LoadPreview(ISong song, float start = -1f)
         {
             if (song == null)
             {
@@ -386,7 +386,7 @@ namespace Vocaluxe.Base
 
                     if (start < 0)
                     {
-                        start = song.Preview.Source == EDataSource.None ? length / 4f : song.Preview.StartTime;
+                        start = song.Preview?.StartTime ?? length / 4f;
                     }
 
                     if (start > length - 5f)

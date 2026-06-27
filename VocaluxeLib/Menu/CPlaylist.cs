@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Xml.Serialization;
+using VocaluxeLib.Utils;
 
 namespace VocaluxeLib.Menu
 {
@@ -1141,7 +1142,7 @@ namespace VocaluxeLib.Menu
                 var pec = new CPlaylistElementContent
                 {
                     SongId = CBase.Playlist.GetSong(ActivePlaylistId, i).SongId,
-                    Modes = CBase.Songs.GetSongById(CBase.Playlist.GetSong(ActivePlaylistId, i).SongId).AvailableGameModes,
+                    Modes = CBase.Songs.GetSongById(CBase.Playlist.GetSong(ActivePlaylistId, i).SongId).GetAvailableGameModes(),
                     Mode = CBase.Playlist.GetSong(ActivePlaylistId, i).GameMode
                 };
                 _PlaylistElementContents.Add(pec);
@@ -1158,7 +1159,7 @@ namespace VocaluxeLib.Menu
             for (var i = 0; i < CBase.Playlist.GetSongCount(ActivePlaylistId); i++)
             {
                 var pec = new CPlaylistElementContent { SongId = CBase.Playlist.GetSong(ActivePlaylistId, i).SongId };
-                pec.Modes = CBase.Songs.GetSongById(pec.SongId).AvailableGameModes;
+                pec.Modes = CBase.Songs.GetSongById(pec.SongId).GetAvailableGameModes();
                 pec.Mode = CBase.Playlist.GetSong(ActivePlaylistId, i).GameMode;
                 _PlaylistElementContents.Add(pec);
             }

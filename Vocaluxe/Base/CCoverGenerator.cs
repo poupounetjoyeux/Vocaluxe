@@ -111,17 +111,14 @@ namespace Vocaluxe.Base
             }
         }
 
-        private void _DrawBackground(Graphics g, Bitmap bmpBackground, String firstCoverPath)
+        private void _DrawBackground(Graphics g, Bitmap bmpBackground, Bitmap firstCoverBmp)
         {
             g.Clear(_BGColor.AsColor());
 
             ImageAttributes ia = null;
-            if (_Theme.ShowFirstCover && !string.IsNullOrEmpty(firstCoverPath) && File.Exists(firstCoverPath))
+            if (_Theme.ShowFirstCover && firstCoverBmp != null)
             {
-                using (var bmp2 = new Bitmap(firstCoverPath))
-                {
-                    g.DrawImage(bmp2, bmpBackground.GetRect(), 0, 0, bmp2.Width, bmp2.Height, GraphicsUnit.Pixel);
-                }
+                g.DrawImage(firstCoverBmp, bmpBackground.GetRect(), 0, 0, firstCoverBmp.Width, firstCoverBmp.Height, GraphicsUnit.Pixel);
 
                 var cm = new ColorMatrix { Matrix33 = _Theme.ImageAlpha };
                 ia = new ImageAttributes();
@@ -191,7 +188,7 @@ namespace Vocaluxe.Base
             }
         }
 
-        public Bitmap GetCover(string text, string firstCoverPath)
+        public Bitmap GetCover(string text, Bitmap firstCoverBitmap)
         {
             if (!_Valid)
             {
@@ -199,45 +196,42 @@ namespace Vocaluxe.Base
             }
 
             text = CLanguage.Translate(_Theme.Text.Text.Replace("%TEXT%", text));
-            using (var bmpImage = new Bitmap(_Image))
+            using var bmpImage = new Bitmap(_Image);
+            var bmp = new Bitmap(bmpImage.Width, bmpImage.Height, PixelFormat.Format32bppArgb);
+            try
             {
-                var bmp = new Bitmap(bmpImage.Width, bmpImage.Height, PixelFormat.Format32bppArgb);
-                try
+                using var g = Graphics.FromImage(bmp);
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.TextRenderingHint = TextRenderingHint.AntiAlias;
+
+                _DrawBackground(g, bmpImage, firstCoverBitmap);
+
+                if (string.IsNullOrEmpty(text))
                 {
-                    using (var g = Graphics.FromImage(bmp))
-                    {
-                        g.SmoothingMode = SmoothingMode.AntiAlias;
-                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        g.TextRenderingHint = TextRenderingHint.AntiAlias;
-
-                        _DrawBackground(g, bmpImage, firstCoverPath);
-
-                        if (text != "")
-                        {
-                            var font = new CFont(_Theme.Text.Font);
-                            var fo = CFonts.GetSystemFont(font);
-                            var textParts = _SplitText(text);
-                            var elements = textParts.Select(line => new CTextElement(line, g, fo)).ToList();
-                            var factor = _DistributeText(elements, bmp.Width, bmp.Height);
-                            foreach (var element in elements)
-                            {
-                                element.AdjustSize(factor);
-                            }
-
-                            font.Height *= factor / (1f + CFonts.GetOutlineSize(font)); //Adjust for outline size
-                            _DrawText(g, bmp.GetSize(), font, elements);
-                        }
-                    }
-
                     return bmp;
                 }
-                catch (Exception)
-                {
-                    bmp.Dispose();
-                }
-            }
 
-            return null;
+                var font = new CFont(_Theme.Text.Font);
+                var fo = CFonts.GetSystemFont(font);
+                var textParts = _SplitText(text);
+                var elements = textParts.Select(line => new CTextElement(line, g, fo)).ToList();
+                var factor = _DistributeText(elements, bmp.Width, bmp.Height);
+                foreach (var element in elements)
+                {
+                    element.AdjustSize(factor);
+                }
+
+                font.Height *= factor / (1f + CFonts.GetOutlineSize(font)); //Adjust for outline size
+                _DrawText(g, bmp.GetSize(), font, elements);
+
+                return bmp;
+            }
+            catch (Exception)
+            {
+                bmp.Dispose();
+                return null;
+            }
         }
 
         /// <summary>

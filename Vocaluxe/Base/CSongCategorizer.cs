@@ -129,7 +129,7 @@ namespace Vocaluxe.Base
                 case ESongSorting.TR_CONFIG_DATEADDED:
                     foreach (var songPointer in CSongs.Sorter.SortedSongs)
                     {
-                        songPointer.SortString = CSongs.GetSong(songPointer.SongId).DateAdded.ToString("dd/MM/yyyy");
+                        songPointer.SortString = CSongs.GetSong(songPointer.SongId).Infos?.DateAdded.ToString("dd/MM/yyyy") ?? string.Empty;
                     }
 
                     break;

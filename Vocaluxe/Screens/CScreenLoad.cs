@@ -141,7 +141,7 @@ namespace Vocaluxe.Screens
 
             _TimerLoadSongsFull = CBenchmark.Time("Loaded Songs Full");
 
-            _SongLoaderThread = new Thread(CSongs.LoadSongs) { Name = "SongLoader", IsBackground = true };
+            _SongLoaderThread = new Thread(CSongs.LoadUltraStarSongs) { Name = "SongLoader", IsBackground = true };
             _SongLoaderThread.Start();
             CBackgroundMusic.OwnSongsAvailable = false;
 

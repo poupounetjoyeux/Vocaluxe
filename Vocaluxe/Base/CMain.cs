@@ -389,7 +389,7 @@ namespace Vocaluxe.Base
             CBackgroundMusic.Stop();
         }
 
-        public void LoadPreview(CSong song, float start = -1f)
+        public void LoadPreview(ISong song, float start = -1f)
         {
             CBackgroundMusic.LoadPreview(song, start);
         }
@@ -629,12 +629,12 @@ namespace Vocaluxe.Base
             return CGame.GetNumSongs();
         }
 
-        public CSong GetSong()
+        public ISong GetSong()
         {
             return CGame.GetSong();
         }
 
-        public CSong GetSong(int round)
+        public ISong GetSong(int round)
         {
             return CGame.GetSong(round);
         }
@@ -778,22 +778,22 @@ namespace Vocaluxe.Base
             CSongs.UpdateRandomSongList();
         }
 
-        public CSong GetVisibleSong(int visibleIndex)
+        public ISong GetVisibleSong(int visibleIndex)
         {
             return CSongs.GetVisibleSongByIndex(visibleIndex);
         }
 
-        public CSong GetSongById(int songId)
+        public ISong GetSongById(int songId)
         {
             return CSongs.GetSong(songId);
         }
 
-        public ReadOnlyCollection<CSong> GetSongs()
+        public ReadOnlyCollection<ISong> GetSongs()
         {
             return CSongs.AllSongs;
         }
 
-        public ReadOnlyCollection<CSong> GetVisibleSongs()
+        public ReadOnlyCollection<ISong> GetVisibleSongs()
         {
             return CSongs.VisibleSongs;
         }
@@ -968,7 +968,7 @@ namespace Vocaluxe.Base
             return CCover.GenerateCoverData(bitmap, out finalSize);
         }
 
-        public CTextureRef GenerateCover(string text, ECoverGeneratorType type, CSong firstSong)
+        public CTextureRef GenerateCover(string text, ECoverGeneratorType type, ISong firstSong)
         {
             return CCover.GenerateCover(text, type, firstSong);
         }
@@ -986,9 +986,9 @@ namespace Vocaluxe.Base
             return CDataBase.EnqueueCoverToTransaction(coverId, size, data);
         }
 
-        public bool GetDataBaseSongInfos(string artist, string title, out int numPlayed, out DateTime dateAdded, out int highscoreId)
+        public CSongInfos GetSongInfos(string artist, string title)
         {
-            return CDataBase.GetDataBaseSongInfos(artist, title, out numPlayed, out dateAdded, out highscoreId);
+            return CDataBase.GetSongInfos(artist, title);
         }
     }
 

@@ -365,7 +365,7 @@ namespace Vocaluxe.Screens
 
         private void _UpdateRatings()
         {
-            CSong song = null;
+            ISong song = null;
             var players = new SPlayer[CGame.NumPlayers];
             if (_Round >= 0)
             {
@@ -508,9 +508,14 @@ namespace Vocaluxe.Screens
                     if (players[p].Points > CSettings.MinScoreForDB && players[p].SongFinished)
                     {
                         var song = CSongs.GetSong(players[p].SongId);
-                        CDataBase.IncreaseSongCounter(song.DataBaseSongId);
-                        song.NumPlayed++;
-                        song.NumPlayedSession++;
+                        if (song.Infos == null)
+                        {
+                            break;
+                        }
+
+                        CDataBase.IncreaseSongCounter(song.Infos.DataBaseSongId);
+                        song.Infos.NumPlayed++;
+                        song.Infos.NumPlayedSession++;
                         break;
                     }
                 }

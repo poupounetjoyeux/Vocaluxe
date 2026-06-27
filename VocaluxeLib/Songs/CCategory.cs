@@ -18,6 +18,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using VocaluxeLib.Draw;
+using VocaluxeLib.Songs.UltraStar;
 
 namespace VocaluxeLib.Songs
 {
@@ -53,7 +54,7 @@ namespace VocaluxeLib.Songs
             return Songs.Count(sp => !sp.IsSung);
         }
 
-        public CSong GetSong(int numInCategory)
+        public ISong GetSong(int numInCategory)
         {
             if (numInCategory >= 0 && numInCategory < Songs.Count)
             {

@@ -22,10 +22,9 @@ using Vocaluxe.Lib.Sound.Playback;
 using Vocaluxe.Lib.Sound.Playback.GstreamerSharp;
 using Vocaluxe.Lib.Sound.Playback.OpenAL;
 using Vocaluxe.Lib.Sound.Playback.PortAudio;
-using Vocaluxe.Lib.Sound.Sources;
 using VocaluxeLib;
+using VocaluxeLib.Songs;
 using VocaluxeLib.Songs.Sources;
-using VocaluxeLib.Utils.Player;
 
 namespace Vocaluxe.Base
 {

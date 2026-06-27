@@ -24,7 +24,7 @@ namespace VocaluxeLib.Utils.Player
 {
     public class CSongPlayer : CSoundPlayer
     {
-        private CSong _Song;
+        private ISong _Song;
         private bool _VideoEnabled;
         private CVideoStream _Video;
         private CFading _VideoFading;
@@ -101,7 +101,7 @@ namespace VocaluxeLib.Utils.Player
 
         }
 
-        public void Load(CSong song, float position = 0f, bool autoplay = false)
+        public void Load(ISong song, float position = 0f, bool autoplay = false)
         {
             if (song == null)
             {

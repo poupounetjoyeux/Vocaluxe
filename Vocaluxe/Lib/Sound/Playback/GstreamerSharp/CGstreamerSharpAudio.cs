@@ -19,6 +19,7 @@ using System;
 using System.IO;
 using Gst;
 using VocaluxeLib.Log;
+using VocaluxeLib.Songs;
 using VocaluxeLib.Songs.Sources;
 using VocaluxeLib.Utils.Player;
 

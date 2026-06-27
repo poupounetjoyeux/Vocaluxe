@@ -20,16 +20,16 @@ using System.Collections.Generic;
 using System.IO;
 using VocaluxeLib.Log;
 
-namespace VocaluxeLib.Songs
+namespace VocaluxeLib.Songs.UltraStar
 {
-    public partial class CSong
+    public partial class CUltraStarSong
     {
-        private class CSongWriter
+        private class CUltraStarSongWriter
         {
-            private readonly CSong _Song;
+            private readonly CUltraStarSong _Song;
             private TextWriter _Tw;
 
-            public CSongWriter(CSong song)
+            public CUltraStarSongWriter(CUltraStarSong song)
             {
                 _Song = song;
             }
@@ -89,15 +89,9 @@ namespace VocaluxeLib.Songs
 
                 _WriteHeaderEntry("TITLE", _Song.Title);
                 _WriteHeaderEntry("ARTIST", _Song.Artist);
-                if (!_Song.Title.Equals(_Song.TitleSorting))
-                {
-                    _WriteHeaderEntry("TITLE-ON-SORTING", _Song.TitleSorting);
-                }
 
-                if (!_Song.Artist.Equals(_Song.ArtistSorting))
-                {
-                    _WriteHeaderEntry("ARTIST-ON-SORTING", _Song.ArtistSorting);
-                }
+                _WriteHeaderEntry("TITLE-ON-SORTING", _Song.TitleSorting);
+                _WriteHeaderEntry("ARTIST-ON-SORTING", _Song.ArtistSorting);
 
                 _WriteHeaderEntries("CREATOR", _Song.Creators);
                 _WriteHeaderEntries("EDITION", _Song.Editions);

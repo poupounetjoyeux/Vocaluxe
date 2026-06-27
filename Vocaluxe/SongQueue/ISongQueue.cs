@@ -41,8 +41,8 @@ namespace Vocaluxe.SongQueue
         int GetNumSongs();
         int GetCurrentRoundNr();
 
-        CSong GetSong();
-        CSong GetSong(int round);
+        ISong GetSong();
+        ISong GetSong(int round);
         EGameMode GetCurrentGameMode();
         EGameMode GetGameMode(int round);
     }

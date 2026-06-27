@@ -529,7 +529,7 @@ namespace Vocaluxe.Base.Server
             {
                 if (File.Exists(avatar.FileName))
                 {
-                    profileData.Avatar = new CBase64Image(_CreateDelayedImage(avatar.FileName));
+                    profileData.Avatar = new CBase64Image(_CreateDelayedImage(avatar.FileName, () => _FromFile(avatar.FileName)));
                 }
             }
 
@@ -588,7 +588,7 @@ namespace Vocaluxe.Base.Server
         #endregion
 
         #region website
-        private static readonly Dictionary<string, string> _DelayedImagePath = new Dictionary<string, string>();
+        private static readonly Dictionary<string, Func<CBase64Image>> _DelayedImages = new();
 
         public static byte[] GetSiteFile(string filename)
         {
@@ -610,23 +610,31 @@ namespace Vocaluxe.Base.Server
             return File.ReadAllBytes(path);
         }
 
-        private static string _CreateDelayedImage(string filename)
+        private static CBase64Image _FromSong(ISong song)
         {
-            var by = SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(filename));
-            var sb = new StringBuilder();
-            foreach (var b in by)
+            using var bitmap = song.GetCoverBitmap();
+            return bitmap == null ? null : new CBase64Image(bitmap, bitmap.RawFormat);
+        }
+
+        private static CBase64Image _FromFile(string filePath)
+        {
+            if (!File.Exists(filePath))
             {
-                sb.Append(b.ToString("x2"));
+                throw new FileNotFoundException("Image not found");
             }
 
-            var hashedFilename = sb.ToString();
+            using var image = Image.FromFile(filePath);
+            return new CBase64Image(image, image.RawFormat);
+        }
 
-            if (!_DelayedImagePath.ContainsKey(hashedFilename))
+        private static string _CreateDelayedImage(string id, Func<CBase64Image> factory)
+        {
+            if (!_DelayedImages.ContainsKey(id))
             {
-                _DelayedImagePath.Add(hashedFilename, filename);
+                _DelayedImages.Add(id, factory);
             }
 
-            return hashedFilename;
+            return id;
         }
 
         public static string GetServerVersion()
@@ -634,22 +642,9 @@ namespace Vocaluxe.Base.Server
             return Application.ProductVersion;
         }
 
-        public static CBase64Image GetDelayedImage(string hashedFilename)
+        public static CBase64Image GetDelayedImage(string hashedUri)
         {
-            if (!_DelayedImagePath.ContainsKey(hashedFilename))
-            {
-                throw new FileNotFoundException("Image not found");
-            }
-
-            var fileName = _DelayedImagePath[hashedFilename];
-
-            if (File.Exists(fileName))
-            {
-                var image = Image.FromFile(fileName);
-                return new CBase64Image(image, image.RawFormat);
-            }
-
-            throw new FileNotFoundException("Image not found");
+            return !_DelayedImages.TryGetValue(hashedUri, out var factory) ? throw new FileNotFoundException("Image not found") : factory();
         }
         #endregion
 
@@ -693,7 +688,7 @@ namespace Vocaluxe.Base.Server
             return song.Id;
         }
 
-        private static SSongInfo _GetSongInfo(CSong song, bool includeCover)
+        private static SSongInfo _GetSongInfo(ISong song, bool includeCover)
         {
             var result = new SSongInfo();
             if (song != null)
@@ -705,16 +700,19 @@ namespace Vocaluxe.Base.Server
                 result.Year = song.Year;
                 result.IsDuet = song.IsDuet;
                 result.SongId = song.Id;
-                if (includeCover)
+                if (!includeCover)
                 {
-                    if (song.Cover == "")
-                    {
-                        result.Cover = new CBase64Image(_CreateDelayedImage("Website\\img\\noCover.png"));
-                    }
-                    else
-                    {
-                        result.Cover = new CBase64Image(_CreateDelayedImage(song.Folder + "\\" + song.Cover));
-                    }
+                    return result;
+                }
+
+                if (!song.HasCover)
+                {
+                    const string noCover = "Website\\img\\noCover.png";
+                    result.Cover = new CBase64Image(_CreateDelayedImage(noCover, () => _FromFile(noCover)));
+                }
+                else
+                {
+                    result.Cover = new CBase64Image(_CreateDelayedImage($"Cover_{song.Id}", () => _FromSong(song)));
                 }
             }
 

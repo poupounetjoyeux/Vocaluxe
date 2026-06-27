@@ -23,6 +23,7 @@ using Vocaluxe.Lib.Database;
 using VocaluxeLib;
 using VocaluxeLib.Draw;
 using VocaluxeLib.Log;
+using VocaluxeLib.Songs;
 
 namespace Vocaluxe.Base
 {
@@ -66,17 +67,14 @@ namespace Vocaluxe.Base
             }
         }
 
-        public static bool GetDataBaseSongInfos(string artist, string title, out int numPlayed, out DateTime dateAdded, out int highscoreId)
+        public static CSongInfos GetSongInfos(string artist, string title)
         {
             if (_HighscoreDB == null)
             {
-                numPlayed = 0;
-                dateAdded = new DateTime();
-                highscoreId = 0;
-                return false;
+                return null;
             }
 
-            return _HighscoreDB.GetDataBaseSongInfos(artist, title, out numPlayed, out dateAdded, out highscoreId);
+            return _HighscoreDB.GetSongInfos(artist, title);
         }
 
         public static List<SDBScoreEntry> LoadScore(int songId, EGameMode gameMode, EHighscoreStyle style)

@@ -23,6 +23,7 @@ using Vocaluxe.Base;
 using VocaluxeLib;
 using VocaluxeLib.Log;
 using VocaluxeLib.Menu;
+using VocaluxeLib.Utils;
 using VocaluxeLib.Xml;
 
 namespace Vocaluxe.Lib.Playlist

@@ -128,7 +128,7 @@ namespace Vocaluxe.Base
             }
         }
 
-        public static CTextureRef GenerateCover(string text, ECoverGeneratorType type, CSong firstSong)
+        public static CTextureRef GenerateCover(string text, ECoverGeneratorType type, ISong firstSong)
         {
             var texture = Cover(text);
             if (texture != NoCover)
@@ -139,13 +139,14 @@ namespace Vocaluxe.Base
             texture = CDraw.CopyTexture(NoCover);
             Task.Factory.StartNew(() =>
             {
+                using var firstSongCover = firstSong?.GetCoverBitmap();
                 _CancelToken.Token.ThrowIfCancellationRequested();
-                var coverBmp = !_CoverGenerators.ContainsKey(type)
-                    ? null : _CoverGenerators[type].GetCover(text, firstSong != null ? Path.Combine(firstSong.Folder, firstSong.Cover) : null);
+                var coverBmp = !_CoverGenerators.TryGetValue(type, out var generator)
+                    ? null : generator.GetCover(text, firstSongCover);
                 _CancelToken.Token.ThrowIfCancellationRequested();
-                if (coverBmp == null && _CoverGenerators.ContainsKey(ECoverGeneratorType.Default))
+                if (coverBmp == null && _CoverGenerators.TryGetValue(ECoverGeneratorType.Default, out var coverGenerator))
                 {
-                    coverBmp = _CoverGenerators[ECoverGeneratorType.Default].GetCover(text, firstSong != null ? Path.Combine(firstSong.Folder, firstSong.Cover) : null);
+                    coverBmp = coverGenerator.GetCover(text, firstSongCover);
                 }
 
                 _CancelToken.Token.ThrowIfCancellationRequested();

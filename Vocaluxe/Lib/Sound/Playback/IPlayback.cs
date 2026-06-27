@@ -17,6 +17,7 @@
 
 using System.IO;
 using VocaluxeLib;
+using VocaluxeLib.Songs;
 using VocaluxeLib.Songs.Sources;
 using VocaluxeLib.Utils.Player;
 

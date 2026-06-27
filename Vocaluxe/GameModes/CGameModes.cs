@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using Vocaluxe.Base;
 using VocaluxeLib;
 using VocaluxeLib.Songs;
+using VocaluxeLib.Utils;
 
 namespace Vocaluxe.GameModes
 {
@@ -56,7 +57,7 @@ namespace Vocaluxe.GameModes
 
     class CGameModeNormal : CGameMode
     {
-        protected override CSong _PrepareSong(CSong song)
+        protected override ISong _PrepareSong(ISong song)
         {
             return song.IsGameModeAvailable(EGameMode.TR_GAMEMODE_NORMAL) ? song : null;
         }
@@ -64,7 +65,7 @@ namespace Vocaluxe.GameModes
 
     class CGameModeDuet : CGameMode
     {
-        protected override CSong _PrepareSong(CSong song)
+        protected override ISong _PrepareSong(ISong song)
         {
             return song.IsGameModeAvailable(EGameMode.TR_GAMEMODE_DUET) ? song : null;
         }
@@ -72,14 +73,15 @@ namespace Vocaluxe.GameModes
 
     class CGameModeShort : CGameMode
     {
-        protected override CSong _PrepareSong(CSong song)
+        protected override ISong _PrepareSong(ISong song)
         {
             if (!song.IsGameModeAvailable(EGameMode.TR_GAMEMODE_SHORTSONG))
             {
                 return null;
             }
 
-            var newSong = new CSong(song) { End = CGame.GetTimeFromBeats(song.ShortEnd.EndBeat, song.Bpm) + CSettings.DefaultMedleyFadeOutTime + song.Gap };
+            var newSong = song.Clone();
+            newSong.End = CGame.GetTimeFromBeats(song.ShortEnd.EndBeat, song.Bpm) + CSettings.DefaultMedleyFadeOutTime + song.Gap;
             // set lines to short mode
             newSong.Notes.SetMedley(0, song.ShortEnd.EndBeat);
 
@@ -89,17 +91,18 @@ namespace Vocaluxe.GameModes
 
     class CGameModeMedley : CGameMode
     {
-        protected override CSong _PrepareSong(CSong song)
+        protected override ISong _PrepareSong(ISong song)
         {
-            if (!song.IsGameModeAvailable(EGameMode.TR_GAMEMODE_MEDLEY))
+            if (!song.IsGameModeAvailable(EGameMode.TR_GAMEMODE_MEDLEY) || song.Medley == null)
             {
                 return null;
             }
 
-            var newSong = new CSong(song) { Start = CGame.GetTimeFromBeats(song.Medley.StartBeat, song.Bpm) - song.Medley.FadeInTime + song.Gap };
-            if (newSong.Start < 0f)
+            var newSong = song.Clone();
+            song.Start = CGame.GetTimeFromBeats(song.Medley.StartBeat, song.Bpm) - song.Medley.FadeInTime + song.Gap;
+            if (newSong.Start < 0)
             {
-                newSong.Start = 0f;
+                newSong.Start = 0;
             }
 
             newSong.End = CGame.GetTimeFromBeats(song.Medley.EndBeat, song.Bpm) + song.Medley.FadeOutTime + song.Gap;

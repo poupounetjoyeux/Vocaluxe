@@ -209,7 +209,7 @@ namespace Vocaluxe.Screens
                         var voiceNr = _Scores[_Round][_Pos + p].VoiceNr;
                         string voiceName = null;
 
-                        CSong song;
+                        ISong song;
                         if (_FromScreenSong)
                         {
                             song = CSongs.GetSong(CScreenSong.getSelectedSongId());
@@ -357,7 +357,7 @@ namespace Vocaluxe.Screens
             _IsDuet = false;
             var points = CGame.GetPoints();
 
-            CSong song;
+            ISong song;
             if (_FromScreenSong)
             {
                 song = CSongs.GetSong(CScreenSong.getSelectedSongId());

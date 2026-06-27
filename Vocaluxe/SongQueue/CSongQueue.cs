@@ -21,6 +21,7 @@ using Vocaluxe.GameModes;
 using VocaluxeLib;
 using VocaluxeLib.Game;
 using VocaluxeLib.Songs;
+using VocaluxeLib.Utils;
 
 namespace Vocaluxe.SongQueue
 {
@@ -41,7 +42,7 @@ namespace Vocaluxe.SongQueue
         private List<SSongQueueEntry> _SongQueue;
         private int _CurrentRound;
         private CPoints _Points;
-        private CSong _CurrentSong;
+        private ISong _CurrentSong;
 
         #region Implementation
         public void Init()
@@ -165,7 +166,7 @@ namespace Vocaluxe.SongQueue
         ///     Get current song
         /// </summary>
         /// <returns>Song of current round or null if there is none/game finished</returns>
-        public CSong GetSong()
+        public ISong GetSong()
         {
             return _CurrentSong;
         }
@@ -180,7 +181,7 @@ namespace Vocaluxe.SongQueue
         /// </summary>
         /// <param name="round">Round (0 based)</param>
         /// <returns>Current song or null if out of bounds</returns>
-        public CSong GetSong(int round)
+        public ISong GetSong(int round)
         {
             if (round == _CurrentRound)
             {

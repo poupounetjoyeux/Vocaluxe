@@ -142,17 +142,14 @@ namespace Vocaluxe.Base
             return _SongQueue.IsFinished();
         }
 
-        public static int RoundNr
-        {
-            get { return _SongQueue.GetCurrentRoundNr(); }
-        }
+        public static int RoundNr => _SongQueue.GetCurrentRoundNr();
 
-        public static CSong GetSong()
+        public static ISong GetSong()
         {
             return _SongQueue.GetSong();
         }
 
-        public static CSong GetSong(int round)
+        public static ISong GetSong(int round)
         {
             return _SongQueue.GetSong(round);
         }

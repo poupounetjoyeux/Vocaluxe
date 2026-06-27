@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using VocaluxeLib;
 using VocaluxeLib.Log;
 using VocaluxeLib.Songs;
+using VocaluxeLib.Songs.UltraStar;
 
 namespace Vocaluxe.Base
 {
@@ -33,20 +34,20 @@ namespace Vocaluxe.Base
     {
         public delegate void CategoryChangedHandler();
 
-        private static readonly List<CSong> _SongsForRandom = new List<CSong>();
+        private static readonly List<ISong> _SongsForRandom = new();
 
         private static bool _CoverLoaded;
         private static int _CatIndex = -1;
-        private static readonly List<CCategory> _CategoriesForRandom = new List<CCategory>();
+        private static readonly List<CCategory> _CategoriesForRandom = new();
 
-        public static readonly CSongFilter Filter = new CSongFilter();
-        public static readonly CSongSorter Sorter = new CSongSorter();
-        public static readonly CSongCategorizer Categorizer = new CSongCategorizer();
+        public static readonly CSongFilter Filter = new();
+        public static readonly CSongSorter Sorter = new();
+        public static readonly CSongCategorizer Categorizer = new();
 
         private static Thread _CoverLoaderThread;
         public static event CategoryChangedHandler OnCategoryChanged;
 
-        public static List<CSong> Songs { get; } = new List<CSong>();
+        public static List<ISong> Songs { get; } = new();
 
         public static bool SongsLoaded { get; private set; }
 
@@ -63,20 +64,11 @@ namespace Vocaluxe.Base
             }
         }
 
-        public static int NumAllSongs
-        {
-            get { return Songs.Count; }
-        }
+        public static int NumAllSongs => Songs.Count;
 
-        public static int NumSongsVisible
-        {
-            get { return VisibleSongs.Count; }
-        }
+        public static int NumSongsVisible => VisibleSongs.Count;
 
-        public static int NumCategories
-        {
-            get { return Categories.Count; }
-        }
+        public static int NumCategories => Categories.Count;
 
         public static int Category
         {
@@ -164,22 +156,19 @@ namespace Vocaluxe.Base
         private static int _NumSongsWithCoverLoaded;
         public static int NumSongsWithCoverLoaded
         {
-            get { return _NumSongsWithCoverLoaded; }
-            private set { _NumSongsWithCoverLoaded = value; }
+            get => _NumSongsWithCoverLoaded;
+            private set => _NumSongsWithCoverLoaded = value;
         }
 
         private static int _NumSongsLoaded;
-        public static int NumSongsLoaded
-        {
-            get { return _NumSongsLoaded; }
-        }
+        public static int NumSongsLoaded => _NumSongsLoaded;
 
         public static string GetCurrentCategoryName()
         {
             return _IsCatIndexValid(_CatIndex) ? Categories[_CatIndex].Name : "";
         }
 
-        public static CSong GetSong(int songId)
+        public static ISong GetSong(int songId)
         {
             return songId >= 0 && songId < Songs.Count ? Songs[songId] : null;
         }
@@ -262,12 +251,12 @@ namespace Vocaluxe.Base
             }
 
             // Calc average sing-count
-            var totalCounts = visibleSongs.Sum(song => song.NumPlayedSession);
+            var totalCounts = visibleSongs.Where(s => s.Infos != null).Sum(song => song.Infos.NumPlayedSession);
             var averageCount = totalCounts / visibleSongs.Count;
 
             foreach (var song in visibleSongs)
             {
-                if (song.NumPlayedSession <= averageCount)
+                if (song.Infos?.NumPlayedSession <= averageCount)
                 {
                     _SongsForRandom.Add(song);
                 }
@@ -315,16 +304,13 @@ namespace Vocaluxe.Base
             return -1;
         }
 
-        public static ReadOnlyCollection<CSong> AllSongs
-        {
-            get { return Songs.AsReadOnly(); }
-        }
+        public static ReadOnlyCollection<ISong> AllSongs => Songs.AsReadOnly();
 
-        public static ReadOnlyCollection<CSong> VisibleSongs
+        public static ReadOnlyCollection<ISong> VisibleSongs
         {
             get
             {
-                var songs = new List<CSong>();
+                var songs = new List<ISong>();
                 if (_IsCatIndexValid(_CatIndex))
                 {
                     // ReSharper disable LoopCanBeConvertedToQuery
@@ -342,10 +328,7 @@ namespace Vocaluxe.Base
             }
         }
 
-        public static ReadOnlyCollection<CCategory> Categories
-        {
-            get { return Categorizer.Categories.AsReadOnly(); }
-        }
+        public static ReadOnlyCollection<CCategory> Categories => Categorizer.Categories.AsReadOnly();
 
         /// <summary>
         ///     Gets category with given index or null for invalid index
@@ -367,7 +350,7 @@ namespace Vocaluxe.Base
         /// </summary>
         /// <param name="index"></param>
         /// <returns>visible song with given index or null for invalid index or song not visible</returns>
-        public static CSong GetVisibleSongByIndex(int index)
+        public static ISong GetVisibleSongByIndex(int index)
         {
             if (index < 0)
             {
@@ -383,14 +366,14 @@ namespace Vocaluxe.Base
             _CategoriesForRandom.Clear();
         }
 
-        public static void Sort(ESongSorting sorting, EOffOn tabs, EOffOn ignoreArticles, String searchString, EDuetOptions duetOptions, int playlistId)
+        public static void Sort(ESongSorting sorting, EOffOn tabs, EOffOn ignoreArticles, string searchString, EDuetOptions duetOptions, int playlistId)
         {
             Filter.SetOptions(searchString, duetOptions, playlistId);
             Sorter.SetOptions(sorting, ignoreArticles);
             Categorizer.Tabs = tabs;
         }
 
-        public static void LoadSongs()
+        public static void LoadUltraStarSongs()
         {
             using (CBenchmark.Time("Load Songs"))
             {
@@ -423,7 +406,7 @@ namespace Vocaluxe.Base
                 using (CBenchmark.Time("Read TXTs"))
                 {
                     var fileList = files.ToList();
-                    var bag = new ConcurrentBag<CSong>();
+                    var bag = new ConcurrentBag<CUltraStarSong>();
                     var options = new ParallelOptions
                     {
                         MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount)
@@ -431,7 +414,7 @@ namespace Vocaluxe.Base
 
                     Parallel.ForEach(fileList, options, file =>
                     {
-                        var song = CSong.LoadSong(file);
+                        var song = CUltraStarSong.LoadSong(file);
                         if (song == null)
                         {
                             return;

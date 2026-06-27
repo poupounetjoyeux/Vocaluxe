@@ -25,6 +25,8 @@ using VocaluxeLib;
 using VocaluxeLib.Menu;
 using VocaluxeLib.Menu.SongMenu;
 using VocaluxeLib.PartyModes;
+using VocaluxeLib.Songs.UltraStar;
+using VocaluxeLib.Utils;
 
 namespace Vocaluxe.Screens
 {
@@ -1409,7 +1411,7 @@ namespace Vocaluxe.Screens
             {
                 var songNr = ids[CGame.Rand.Next(ids.Count)];
 
-                foreach (var gm in CSongs.AllSongs[songNr].AvailableGameModes)
+                foreach (var gm in CSongs.AllSongs[songNr].GetAvailableGameModes())
                 {
                     if (gm == EGameMode.TR_GAMEMODE_MEDLEY)
                     {
@@ -1537,8 +1539,7 @@ namespace Vocaluxe.Screens
                     case ESongSorting.TR_CONFIG_ARTIST:
                     case ESongSorting.TR_CONFIG_ARTIST_LETTER:
                         visibleId = _FindIndex(songs, start,
-                            element => _Sso.Sorting.IgnoreArticles == EOffOn.TR_CONFIG_ON ? element.ArtistSorting.StartsWith(searchString, StringComparison.OrdinalIgnoreCase)
-                                : element.Artist.StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
+                            element => element.GetArtistSorting(_Sso.Sorting.IgnoreArticles == EOffOn.TR_CONFIG_ON).StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
                         break;
 
                     case ESongSorting.TR_CONFIG_YEAR:
@@ -1548,12 +1549,11 @@ namespace Vocaluxe.Screens
 
                     case ESongSorting.TR_CONFIG_TITLE_LETTER:
                         visibleId = _FindIndex(songs, start,
-                            element => _Sso.Sorting.IgnoreArticles == EOffOn.TR_CONFIG_ON ? element.TitleSorting.StartsWith(searchString, StringComparison.OrdinalIgnoreCase)
-                                : element.Title.StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
+                            element => element.GetTitleSorting(_Sso.Sorting.IgnoreArticles == EOffOn.TR_CONFIG_ON).StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
                         break;
 
                     case ESongSorting.TR_CONFIG_FOLDER:
-                        visibleId = _FindIndex(songs, start, element => element.FolderName.StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
+                        visibleId = _FindIndex(songs, start, element => element is CUltraStarSong usSong && usSong.FolderName.StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
                         break;
                 }
 
@@ -1571,15 +1571,13 @@ namespace Vocaluxe.Screens
                     case ESongSorting.TR_CONFIG_FOLDER:
                     case ESongSorting.TR_CONFIG_TITLE_LETTER:
                         visibleId = _FindIndex(songs, start,
-                            element => _Sso.Sorting.IgnoreArticles == EOffOn.TR_CONFIG_ON ? element.ArtistSorting.StartsWith(searchString, StringComparison.OrdinalIgnoreCase)
-                                : element.Artist.StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
+                            element => element.GetArtistSorting(_Sso.Sorting.IgnoreArticles == EOffOn.TR_CONFIG_ON).StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
                         break;
 
                     case ESongSorting.TR_CONFIG_ARTIST:
                     case ESongSorting.TR_CONFIG_ARTIST_LETTER:
                         visibleId = _FindIndex(songs, start,
-                            element => _Sso.Sorting.IgnoreArticles == EOffOn.TR_CONFIG_ON ? element.TitleSorting.StartsWith(searchString, StringComparison.OrdinalIgnoreCase)
-                                : element.Title.StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
+                            element => element.GetTitleSorting(_Sso.Sorting.IgnoreArticles == EOffOn.TR_CONFIG_ON).StartsWith(searchString, StringComparison.OrdinalIgnoreCase));
                         break;
                 }
 

@@ -1,22 +1,21 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
 namespace VocaluxeLib.Songs.Sources
 {
-    public sealed class CSongFileSource : ISoundSource, IEquatable<CSongFileSource>
+    public sealed class CSongFileSource : ISoundSource
     {
-        private readonly CSong _Song;
-        private readonly string _FileName;
+        private readonly ISong _Song;
+        private readonly string _FilePath;
 
-        public CSongFileSource(CSong song, string fileName)
+        public CSongFileSource(ISong song, string filePath)
         {
             _Song = song;
-            _FileName = fileName;
+            _FilePath = filePath;
         }
 
         public string GetUri()
         {
-            return Path.Combine(_Song.Folder, _FileName);
+            return _FilePath;
         }
 
         public Stream GetStream()
@@ -38,7 +37,7 @@ namespace VocaluxeLib.Songs.Sources
                 return true;
             }
 
-            return Equals(_Song, other._Song) && _FileName == other._FileName;
+            return Equals(_Song, other._Song) && _FilePath == other._FilePath;
         }
 
         public override bool Equals(object obj)
@@ -50,7 +49,7 @@ namespace VocaluxeLib.Songs.Sources
         {
             unchecked
             {
-                return ((_Song != null ? _Song.GetHashCode() : 0) * 397) ^ (_FileName != null ? _FileName.GetHashCode() : 0);
+                return ((_Song != null ? _Song.GetHashCode() : 0) * 397) ^ (_FilePath != null ? _FilePath.GetHashCode() : 0);
             }
         }
     }

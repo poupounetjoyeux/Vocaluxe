@@ -16,7 +16,6 @@
 #endregion
 
 using System;
-using Vocaluxe.Lib.Sound.Sources;
 using VocaluxeLib.Draw;
 using VocaluxeLib.Songs;
 using VocaluxeLib.Songs.Sources;
@@ -25,7 +24,7 @@ namespace Vocaluxe.Base
 {
     class CPlaylistElement
     {
-        public readonly CSong Song;
+        public readonly ISong Song;
         private readonly string _MusicFilePath = string.Empty;
 
         public bool HasMetaData => Song != null;
@@ -46,7 +45,7 @@ namespace Vocaluxe.Base
 
         public float VideoGap => HasMetaData ? Song.VideoGap : 0;
 
-        public CPlaylistElement(CSong song)
+        public CPlaylistElement(ISong song)
         {
             Song = song ?? throw new ArgumentNullException("song");
         }

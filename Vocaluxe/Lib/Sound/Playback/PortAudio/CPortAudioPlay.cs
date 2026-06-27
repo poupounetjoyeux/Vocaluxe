@@ -15,6 +15,7 @@
 // along with Vocaluxe. If not, see <http://www.gnu.org/licenses/>.
 #endregion
 
+using VocaluxeLib.Songs;
 using VocaluxeLib.Songs.Sources;
 using VocaluxeLib.Utils.Player;
 

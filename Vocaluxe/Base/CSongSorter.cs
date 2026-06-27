@@ -21,12 +21,13 @@ using System.Diagnostics;
 using System.Linq;
 using VocaluxeLib;
 using VocaluxeLib.Songs;
+using VocaluxeLib.Songs.UltraStar;
 
 namespace Vocaluxe.Base
 {
     class CSongSorter : CObservable
     {
-        private CSongPointer[] _SortedSongs = new CSongPointer[0];
+        private CSongPointer[] _SortedSongs = Array.Empty<CSongPointer>();
         private EOffOn _IgnoreArticles = CConfig.Config.Game.IgnoreArticles;
         private ESongSorting _SongSorting = CConfig.Config.Game.SongSorting;
 
@@ -46,7 +47,7 @@ namespace Vocaluxe.Base
 
         public EOffOn IgnoreArticles
         {
-            get { return _IgnoreArticles; }
+            get => _IgnoreArticles;
             set
             {
                 if (value == _IgnoreArticles)
@@ -61,7 +62,7 @@ namespace Vocaluxe.Base
 
         public ESongSorting SongSorting
         {
-            get { return _SongSorting; }
+            get => _SongSorting;
             set
             {
                 if (value == _SongSorting)
@@ -91,33 +92,25 @@ namespace Vocaluxe.Base
 
         private int _SortByFieldArtistTitle(CSongPointer s1, CSongPointer s2)
         {
-            var res = String.Compare(s1.SortString, s2.SortString, StringComparison.CurrentCultureIgnoreCase);
-            if (res == 0)
+            var res = string.Compare(s1.SortString, s2.SortString, StringComparison.CurrentCultureIgnoreCase);
+            if (res != 0)
             {
-                if (_IgnoreArticles == EOffOn.TR_CONFIG_ON)
-                {
-                    res = String.Compare(CSongs.Songs[s1.SongId].ArtistSorting, CSongs.Songs[s2.SongId].ArtistSorting, StringComparison.CurrentCultureIgnoreCase);
-                    return res != 0 ? res : String.Compare(CSongs.Songs[s1.SongId].TitleSorting, CSongs.Songs[s2.SongId].TitleSorting, StringComparison.CurrentCultureIgnoreCase);
-                }
-
-                res = String.Compare(CSongs.Songs[s1.SongId].Artist, CSongs.Songs[s2.SongId].Artist, StringComparison.CurrentCultureIgnoreCase);
-                return res != 0 ? res : String.Compare(CSongs.Songs[s1.SongId].Title, CSongs.Songs[s2.SongId].Title, StringComparison.CurrentCultureIgnoreCase);
+                return res;
             }
 
-            return res;
+            var ignoreArticles = _IgnoreArticles == EOffOn.TR_CONFIG_ON;
+            res = string.Compare(CSongs.Songs[s1.SongId].GetArtistSorting(ignoreArticles), CSongs.Songs[s2.SongId].GetArtistSorting(ignoreArticles),
+                StringComparison.CurrentCultureIgnoreCase);
+            return res != 0 ? res : string.Compare(CSongs.Songs[s1.SongId].GetTitleSorting(ignoreArticles), CSongs.Songs[s2.SongId].GetTitleSorting(ignoreArticles),
+                StringComparison.CurrentCultureIgnoreCase);
         }
 
         private int _SortByFieldTitle(CSongPointer s1, CSongPointer s2)
         {
-            var res = String.Compare(s1.SortString, s2.SortString, StringComparison.CurrentCultureIgnoreCase);
-            if (res == 0)
-            {
-                return _IgnoreArticles == EOffOn.TR_CONFIG_ON
-                    ? String.Compare(CSongs.Songs[s1.SongId].TitleSorting, CSongs.Songs[s2.SongId].TitleSorting, StringComparison.CurrentCultureIgnoreCase) :
-                    String.Compare(CSongs.Songs[s1.SongId].Title, CSongs.Songs[s2.SongId].Title, StringComparison.CurrentCultureIgnoreCase);
-            }
-
-            return res;
+            var ignoreArticles = _IgnoreArticles == EOffOn.TR_CONFIG_ON;
+            var res = string.Compare(s1.SortString, s2.SortString, StringComparison.CurrentCultureIgnoreCase);
+            return res == 0 ? string.Compare(CSongs.Songs[s1.SongId].GetTitleSorting(ignoreArticles), CSongs.Songs[s2.SongId].GetTitleSorting(ignoreArticles),
+                StringComparison.CurrentCultureIgnoreCase) : res;
         }
 
         /// <summary>
@@ -134,28 +127,28 @@ namespace Vocaluxe.Base
         /// </summary>
         private int _SortByLetterFieldArtistTitle(CSongPointer s1, CSongPointer s2)
         {
-            var res = String.Compare(s1.SortString[0].ToString(), s2.SortString[0].ToString(), StringComparison.CurrentCultureIgnoreCase);
+            var res = string.Compare(s1.SortString[0].ToString(), s2.SortString[0].ToString(), StringComparison.CurrentCultureIgnoreCase);
             return res != 0 ? res : _SortByFieldArtistTitle(s1, s2);
         }
 
-        private void _AddSongToList(CSong song, List<CSongPointer> list)
+        private void _AddSongToList(ISong song, List<CSongPointer> list)
         {
             string value = null;
             List<string> values = null;
             switch (_SongSorting)
             {
                 case ESongSorting.TR_CONFIG_NONE:
-                    value = "";
+                    value = string.Empty;
                     break;
                 case ESongSorting.TR_CONFIG_FOLDER:
-                    value = song.FolderName;
+                    value = song is CUltraStarSong usSong ? usSong.FolderName : string.Empty;
                     break;
                 case ESongSorting.TR_CONFIG_ARTIST:
                 case ESongSorting.TR_CONFIG_ARTIST_LETTER:
-                    value = _IgnoreArticles == EOffOn.TR_CONFIG_ON ? song.ArtistSorting : song.Artist;
+                    value = song.GetArtistSorting(_IgnoreArticles == EOffOn.TR_CONFIG_ON);
                     break;
                 case ESongSorting.TR_CONFIG_TITLE_LETTER:
-                    value = _IgnoreArticles == EOffOn.TR_CONFIG_ON ? song.TitleSorting : song.Title;
+                    value = song.GetTitleSorting(_IgnoreArticles == EOffOn.TR_CONFIG_ON);
                     break;
                 case ESongSorting.TR_CONFIG_EDITION:
                     values = song.Editions;
@@ -174,7 +167,7 @@ namespace Vocaluxe.Base
                     value = song.Year;
                     break;
                 case ESongSorting.TR_CONFIG_DATEADDED:
-                    value = song.DateAdded.ToString("yyyyMMdd");
+                    value = song.Infos?.DateAdded.ToString("yyyyMMdd") ?? string.Empty;
                     break;
                 default:
                     Debug.Assert(false, "Forgot sorting option");

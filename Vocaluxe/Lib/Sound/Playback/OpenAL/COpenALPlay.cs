@@ -16,6 +16,7 @@
 #endregion
 
 using OpenTK.Audio;
+using VocaluxeLib.Songs;
 using VocaluxeLib.Songs.Sources;
 
 namespace Vocaluxe.Lib.Sound.Playback.OpenAL

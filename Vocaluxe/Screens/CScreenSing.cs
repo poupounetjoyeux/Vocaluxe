@@ -18,7 +18,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Timers;
 using System.Windows.Forms;
@@ -31,6 +30,7 @@ using VocaluxeLib.Log;
 using VocaluxeLib.Menu;
 using VocaluxeLib.PartyModes;
 using VocaluxeLib.Songs;
+using VocaluxeLib.Songs.UltraStar;
 
 namespace Vocaluxe.Screens
 {
@@ -390,13 +390,15 @@ namespace Vocaluxe.Screens
                         }
 
                         var song = CGame.GetSong();
-                        song.VideoAspect = _VideoAspect;
-
-                        _ShowInfoText(CBase.Language.Translate("TR_SCREENSING_ASPECTRATIO").Replace("%a", _VideoAspect.ToString()));
-
-                        if (CConfig.Config.Debug.SaveModifiedSongs == EOffOn.TR_CONFIG_ON)
+                        if (song is CUltraStarSong ultraStarSong)
                         {
-                            song.Save();
+                            ultraStarSong.VideoAspect = _VideoAspect;
+                            _ShowInfoText(CBase.Language.Translate("TR_SCREENSING_ASPECTRATIO").Replace("%a", _VideoAspect.ToString()));
+
+                            if (CConfig.Config.Debug.SaveModifiedSongs == EOffOn.TR_CONFIG_ON)
+                            {
+                                ultraStarSong.Save();
+                            }
                         }
 
                         break;
@@ -1599,19 +1601,20 @@ namespace Vocaluxe.Screens
             }
 
             CDraw.RemoveTexture(ref _Background);
-            if (song.BackgroundFileNames.Count > 1)
+            var backgroundUris = song.GetBackgroundUris();
+            if (backgroundUris.Length > 1)
             {
                 _SlideShow = GetNewBackground();
-                foreach (var bgFile in song.BackgroundFileNames)
+                foreach (var bgUri in backgroundUris)
                 {
-                    _SlideShow.AddSlideShowTexture(Path.Combine(song.Folder, bgFile));
+                    _SlideShow.AddSlideShowTexture(bgUri);
                 }
             }
-            else if (song.BackgroundFileNames.Count == 1)
+            else if (backgroundUris.Length == 1)
             {
-                if (!string.IsNullOrEmpty(song.BackgroundFileNames[0]))
+                if (!string.IsNullOrEmpty(backgroundUris[0]))
                 {
-                    _Background = CDraw.AddTexture(Path.Combine(song.Folder, song.BackgroundFileNames[0]));
+                    _Background = CDraw.AddTexture(backgroundUris[0]);
                 }
             }
 
@@ -2324,7 +2327,7 @@ namespace Vocaluxe.Screens
         }
         #endregion
 
-        private int _FindCurrentLine(CVoice voice, CSongLine[] lines, CSong song)
+        private int _FindCurrentLine(CVoice voice, CSongLine[] lines, ISong song)
         {
             var currentTime = _CurrentTime - song.Gap;
             //We are only interested in the last matching line, so either do not check further after line[j].StartBeat > _CurrentBeat or go backwards!

@@ -22,6 +22,7 @@ using System.Windows.Forms;
 using VocaluxeLib.Draw;
 using VocaluxeLib.PartyModes;
 using VocaluxeLib.Songs;
+using VocaluxeLib.Songs.UltraStar;
 
 namespace VocaluxeLib.Menu.SongMenu
 {
@@ -29,7 +30,7 @@ namespace VocaluxeLib.Menu.SongMenu
     {
         private SRectF _ScrollRect;
         private List<CStatic> _Tiles;
-        private CStatic _CoverBig;
+        private CStatic _Cover;
         private CStatic _TextBG;
         private CStatic _DuetIcon;
         private CStatic _RapIcon;
@@ -125,7 +126,7 @@ namespace VocaluxeLib.Menu.SongMenu
             _Title = new CText(_Theme.SongMenuTileBoard.TextTitle, _PartyModeId);
             _SongLength = new CText(_Theme.SongMenuTileBoard.TextSongLength, _PartyModeId);
             _SongYear = new CText(_Theme.SongMenuTileBoard.TextSongYear, _PartyModeId);
-            _CoverBig = new CStatic(_Theme.SongMenuTileBoard.StaticCoverBig, _PartyModeId);
+            _Cover = new CStatic(_Theme.SongMenuTileBoard.StaticCoverBig, _PartyModeId);
             _TextBG = new CStatic(_Theme.SongMenuTileBoard.StaticTextBG, _PartyModeId);
             _DuetIcon = new CStatic(_Theme.SongMenuTileBoard.StaticDuetIcon, _PartyModeId);
             _RapIcon = new CStatic(_Theme.SongMenuTileBoard.StaticRapIcon, _PartyModeId);
@@ -158,7 +159,7 @@ namespace VocaluxeLib.Menu.SongMenu
             _Theme.SongMenuTileBoard.TextSongLength = (SThemeText)_SongLength.GetTheme();
             _Theme.SongMenuTileBoard.TextSongYear = (SThemeText)_SongYear.GetTheme();
             _Theme.SongMenuTileBoard.TextTitle = (SThemeText)_Title.GetTheme();
-            _Theme.SongMenuTileBoard.StaticCoverBig = (SThemeStatic)_CoverBig.GetTheme();
+            _Theme.SongMenuTileBoard.StaticCoverBig = (SThemeStatic)_Cover.GetTheme();
             _Theme.SongMenuTileBoard.StaticDuetIcon = (SThemeStatic)_DuetIcon.GetTheme();
             _Theme.SongMenuTileBoard.StaticRapIcon = (SThemeStatic)_RapIcon.GetTheme();
             _Theme.SongMenuTileBoard.StaticMedleyCalcIcon = (SThemeStatic)_MedleyCalcIcon.GetTheme();
@@ -234,11 +235,11 @@ namespace VocaluxeLib.Menu.SongMenu
         private void _UpdatePreview()
         {
             //First hide everything so we just have to set what we actually want
-            _CoverBig.Texture = _CoverBigBGTexture;
-            _Artist.Text = string.Empty;
-            _Title.Text = string.Empty;
-            _SongLength.Text = string.Empty;
-            _SongYear.Text = string.Empty;
+            _Cover.Texture = _CoverBigBGTexture;
+            _Artist.Text = String.Empty;
+            _Title.Text = String.Empty;
+            _SongLength.Text = String.Empty;
+            _SongYear.Text = String.Empty;
             _DuetIcon.Visible = false;
             _RapIcon.Visible = false;
             _VideoIcon.Visible = false;
@@ -268,20 +269,20 @@ namespace VocaluxeLib.Menu.SongMenu
                         return;
                     }
 
-                    _CoverBig.Texture = category.CoverTextureBig;
+                    _Cover.Texture = category.CoverTextureBig;
                     _Artist.Text = category.Name;
                     return;
                 }
 
-                _CoverBig.Texture = song.CoverTexture;
+                _Cover.Texture = song.CoverTexture;
                 _Artist.Text = song.Artist;
                 _Title.Text = song.Title;
                 _SongYear.Text = song.Year;
                 _DuetIcon.Visible = song.IsDuet;
                 _RapIcon.Visible = song.IsRap;
-                _VideoIcon.Visible = song.Video != "";
-                _MedleyCalcIcon.Visible = song.Medley.Source == EDataSource.Calculated;
-                _MedleyTagIcon.Visible = song.Medley.Source == EDataSource.Tag;
+                _VideoIcon.Visible = song.HasVideo;
+                _MedleyCalcIcon.Visible = song.Medley?.Source == EDataSource.Calculated;
+                _MedleyTagIcon.Visible = song.Medley?.Source == EDataSource.Tag;
                 _InstrumentalIcon.Visible = song.HasInstrumental;
                 _VocalsIcon.Visible = song.HasVocals;
 
@@ -296,7 +297,7 @@ namespace VocaluxeLib.Menu.SongMenu
                     return;
                 }
 
-                _CoverBig.Texture = category.CoverTextureBig;
+                _Cover.Texture = category.CoverTextureBig;
                 _Artist.Text = category.Name;
 
                 var num = category.GetNumSongsNotSung();
@@ -305,7 +306,7 @@ namespace VocaluxeLib.Menu.SongMenu
             }
         }
 
-        private void _UpdateLength(CSong song)
+        private void _UpdateLength(ISong song)
         {
             if (song == null)
             {
@@ -646,16 +647,16 @@ namespace VocaluxeLib.Menu.SongMenu
             {
                 if (vidtex.Color.A < 1)
                 {
-                    _CoverBig.Draw(EAspect.Crop);
+                    _Cover.Draw(EAspect.Crop);
                 }
 
-                var rect = CHelper.FitInBounds(_CoverBig.Rect, vidtex.OrigAspect, EAspect.Crop);
-                CBase.Drawing.DrawTexture(vidtex, rect, vidtex.Color, _CoverBig.Rect);
-                CBase.Drawing.DrawTextureReflection(vidtex, rect, vidtex.Color, _CoverBig.Rect, _CoverBig.ReflectionSpace, _CoverBig.ReflectionHeight);
+                var rect = CHelper.FitInBounds(_Cover.Rect, vidtex.OrigAspect, EAspect.Crop);
+                CBase.Drawing.DrawTexture(vidtex, rect, vidtex.Color, _Cover.Rect);
+                CBase.Drawing.DrawTextureReflection(vidtex, rect, vidtex.Color, _Cover.Rect, _Cover.ReflectionSpace, _Cover.ReflectionHeight);
             }
             else
             {
-                _CoverBig.Draw(EAspect.Crop);
+                _Cover.Draw(EAspect.Crop);
             }
 
             foreach (var element in _SubElements)
@@ -777,7 +778,7 @@ namespace VocaluxeLib.Menu.SongMenu
             }
 
             // Those are drawn seperately so they are not in the above list
-            _CoverBig.LoadSkin();
+            _Cover.LoadSkin();
             _TextBG.LoadSkin();
 
             Init();

@@ -26,7 +26,6 @@ using VocaluxeLib.Menu;
 using VocaluxeLib.Profile;
 using VocaluxeLib.Songs;
 using VocaluxeLib.Songs.Sources;
-using VocaluxeLib.Utils.Player;
 
 namespace VocaluxeLib
 {
@@ -132,7 +131,7 @@ namespace VocaluxeLib
 
         CTextureRef GetVideoTexture();
 
-        void LoadPreview(CSong song, float start = -1f);
+        void LoadPreview(ISong song, float start = -1f);
         void StopPreview();
         void SetPlayingPreview(bool playPreview);
     }
@@ -204,8 +203,8 @@ namespace VocaluxeLib
         void Reset();
         void ClearSongs();
         int GetNumSongs();
-        CSong GetSong();
-        CSong GetSong(int round);
+        ISong GetSong();
+        ISong GetSong(int round);
     }
 
     public interface IRecording
@@ -247,10 +246,10 @@ namespace VocaluxeLib
         void SetCategory(int categoryIndex);
         void UpdateRandomSongList();
 
-        CSong GetVisibleSong(int visibleIndex);
-        CSong GetSongById(int songId);
-        ReadOnlyCollection<CSong> GetSongs();
-        ReadOnlyCollection<CSong> GetVisibleSongs();
+        ISong GetVisibleSong(int visibleIndex);
+        ISong GetSongById(int songId);
+        ReadOnlyCollection<ISong> GetSongs();
+        ReadOnlyCollection<ISong> GetVisibleSongs();
         CCategory GetCategory(int index);
 
         void AddPartySongSung(int songId);
@@ -295,14 +294,14 @@ namespace VocaluxeLib
     {
         CTextureRef GetNoCover();
         byte[] GenerateCoverData(Bitmap bitmap, out Size finalSize);
-        CTextureRef GenerateCover(string text, ECoverGeneratorType type, CSong firstSong);
+        CTextureRef GenerateCover(string text, ECoverGeneratorType type, ISong firstSong);
     }
 
     public interface IDataBase
     {
         CTextureRef GetCover(string coverId);
         bool EnqueueCoverToTransaction(string coverId, Size sIze, byte[] data);
-        bool GetDataBaseSongInfos(string artist, string title, out int numPlayed, out DateTime dateAdded, out int highscoreId);
+        CSongInfos GetSongInfos(string artist, string title);
     }
 
     public interface IControllers
@@ -339,7 +338,7 @@ namespace VocaluxeLib
     public interface IPreviewPlayer
     {
         void Play(float start = -1);
-        void Load(CSong song, float start = 0f);
+        void Load(ISong song, float start = 0f);
         void Stop();
         void TogglePause();
         CTextureRef GetCover();

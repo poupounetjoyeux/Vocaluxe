@@ -21,24 +21,24 @@ using System.IO;
 using System.Linq;
 using VocaluxeLib.Log;
 
-namespace VocaluxeLib.Songs
+namespace VocaluxeLib.Songs.UltraStar
 {
     /// <summary>
     ///     Part of CSong that is required for note loading
     /// </summary>
-    public partial class CSong
+    public partial class CUltraStarSong
     {
         /// <summary>
         ///     Factor the bpm given in the txt is multiplied with
         /// </summary>
         private const int _BpmFactor = 4;
 
-        private class CSongLoader
+        private class CUltraStarSongLoader
         {
-            private readonly CSong _Song;
+            private readonly CUltraStarSong _Song;
             private int _LineNr;
 
-            public CSongLoader(CSong song)
+            public CUltraStarSongLoader(CUltraStarSong song)
             {
                 _Song = song;
             }
@@ -93,15 +93,17 @@ namespace VocaluxeLib.Songs
                 _Song.Genres.Clear();
                 _Song.UnknownTags.Clear();
                 _Song.BackgroundFileNames.Clear();
-                _Song._Comment = "";
+                _Song.Editions.Clear();
+                _Song.Tags.Clear();
+                _Song.Creators.Clear();
+                _Song._Comment = string.Empty;
                 _Song.ManualEncoding = false;
-                _Song.Medley.Source = EDataSource.None;
+                _Song.Medley = null;
                 _Song._CalculateMedley = true;
-                _Song.Preview.Source = EDataSource.None;
-                _Song.ShortEnd.Source = EDataSource.None;
+                _Song.Preview = null;
+                _Song.ShortEnd = null;
                 _Song.Start = 0;
                 _Song.VideoGap = 0;
-                _Song.Preview.StartTime = 0;
 
                 var headerFlags = new EHeaderFlags();
                 StreamReader sr = null;
@@ -197,7 +199,7 @@ namespace VocaluxeLib.Songs
                                 if (File.Exists(Path.Combine(_Song.Folder, value)))
                                 {
                                     _Song.Audio = value;
-                                    headerFlags |= EHeaderFlags.AUDIO;
+                                    headerFlags |= EHeaderFlags.Audio;
                                 }
                                 else
                                 {
@@ -235,9 +237,9 @@ namespace VocaluxeLib.Songs
 
                                 break;
                             case "BPM":
-                                if (CHelper.TryParse(value, out _Song.Bpm))
+                                if (CHelper.TryParse(value, out var bpm))
                                 {
-                                    _Song.Bpm *= _BpmFactor;
+                                    _Song.Bpm = bpm * _BpmFactor;
                                     headerFlags |= EHeaderFlags.Bpm;
                                 }
                                 else
@@ -287,9 +289,9 @@ namespace VocaluxeLib.Songs
                                 _Song._Comment += value;
                                 break;
                             case "GAP":
-                                if (CHelper.TryParse(value, out _Song.Gap))
+                                if (CHelper.TryParse(value, out var gap))
                                 {
-                                    _Song.Gap /= 1000f;
+                                    _Song.Gap = gap / 1000;
                                 }
                                 else
                                 {
@@ -332,30 +334,42 @@ namespace VocaluxeLib.Songs
 
                                 break;
                             case "VIDEOGAP":
-                                if (!CHelper.TryParse(value, out _Song.VideoGap))
+                                if (CHelper.TryParse(value, out var videoGap))
+                                {
+                                    _Song.VideoGap = videoGap;
+                                }
+                                else
                                 {
                                     CLog.CSongLog.Warning("[{SongFileName}] Invalid videogap: {Value}", CLog.Params(_Song.FileName, value));
                                 }
 
                                 break;
                             case "VIDEOASPECT":
-                                if (!CHelper.TryParse(value, out _Song.VideoAspect, true))
+                                if (CHelper.TryParse(value, out EAspect videoAspect, true))
+                                {
+                                    _Song.VideoAspect = videoAspect;
+                                }
+                                else
                                 {
                                     CLog.CSongLog.Warning("[{SongFileName}] Invalid videoaspect: {Value}", CLog.Params(_Song.FileName, value));
                                 }
 
                                 break;
                             case "START":
-                                if (!CHelper.TryParse(value, out _Song.Start))
+                                if (CHelper.TryParse(value, out var start))
+                                {
+                                    _Song.Start = start;
+                                }
+                                else
                                 {
                                     CLog.CSongLog.Warning("[{SongFileName}] Invalid start: {Value}", CLog.Params(_Song.FileName, value));
                                 }
 
                                 break;
                             case "END":
-                                if (CHelper.TryParse(value, out _Song.End))
+                                if (CHelper.TryParse(value, out var end))
                                 {
-                                    _Song.End /= 1000f;
+                                    _Song.End = end / 1000f;
                                 }
                                 else
                                 {
@@ -364,9 +378,13 @@ namespace VocaluxeLib.Songs
 
                                 break;
                             case "PREVIEWSTART":
-                                if (CHelper.TryParse(value, out _Song.Preview.StartTime) && _Song.Preview.StartTime >= 0f)
+                                if (CHelper.TryParse(value, out var startTime) && startTime >= 0f)
                                 {
-                                    _Song.Preview.Source = EDataSource.Tag;
+                                    _Song.Preview = new CPreview
+                                    {
+                                        Source = EDataSource.Tag,
+                                        StartTime = startTime
+                                    };
                                 }
                                 else
                                 {
@@ -375,11 +393,14 @@ namespace VocaluxeLib.Songs
 
                                 break;
                             case "PREVIEW":
-                                if (CHelper.TryParse(value, out _Song.Preview.StartTime) && _Song.Preview.StartTime >= 0f)
+                                if (CHelper.TryParse(value, out var preview) && preview >= 0)
                                 {
                                     //This is stored in ms not like PREVIEWSTART!
-                                    _Song.Preview.StartTime /= 1000f;
-                                    _Song.Preview.Source = EDataSource.Tag;
+                                    _Song.Preview = new CPreview
+                                    {
+                                        StartTime = preview / 1000,
+                                        Source = EDataSource.Tag
+                                    };
                                 }
                                 else
                                 {
@@ -388,8 +409,10 @@ namespace VocaluxeLib.Songs
 
                                 break;
                             case "MEDLEYSTARTBEAT":
-                                if (int.TryParse(value, out _Song.Medley.StartBeat))
+                                if (int.TryParse(value, out var medleyStartBeat))
                                 {
+                                    _Song.Medley ??= new CMedley { Source = EDataSource.Tag };
+                                    _Song.Medley.StartBeat = medleyStartBeat;
                                     headerFlags |= EHeaderFlags.MedleyStartBeat;
                                 }
                                 else
@@ -399,8 +422,10 @@ namespace VocaluxeLib.Songs
 
                                 break;
                             case "MEDLEYENDBEAT":
-                                if (int.TryParse(value, out _Song.Medley.EndBeat))
+                                if (int.TryParse(value, out var medleyEndBeat))
                                 {
+                                    _Song.Medley ??= new CMedley { Source = EDataSource.Tag };
+                                    _Song.Medley.EndBeat = medleyEndBeat;
                                     headerFlags |= EHeaderFlags.MedleyEndBeat;
                                 }
                                 else
@@ -415,8 +440,11 @@ namespace VocaluxeLib.Songs
                                     int endTime;
                                     if (int.TryParse(value, out endTime) || endTime < 0)
                                     {
-                                        _Song.ShortEnd.EndBeat = (int)CBase.Game.GetBeatFromTime(endTime / 1000f, _Song.Bpm, _Song.Gap);
-                                        _Song.ShortEnd.Source = EDataSource.Tag;
+                                        _Song.ShortEnd = new CShortEnd
+                                        {
+                                            EndBeat = (int)CBase.Game.GetBeatFromTime(endTime / 1000f, _Song.Bpm, _Song.Gap),
+                                            Source = EDataSource.Tag
+                                        };
                                     }
                                     else
                                     {
@@ -495,7 +523,7 @@ namespace VocaluxeLib.Songs
                         return false;
                     }
 
-                    if ((headerFlags & EHeaderFlags.AUDIO) == 0)
+                    if ((headerFlags & EHeaderFlags.Audio) == 0)
                     {
                         CLog.CSongLog.Error("[{SongFileName}] AUDIO tag missing", CLog.Params(_Song.FileName));
                         return false;
@@ -508,7 +536,7 @@ namespace VocaluxeLib.Songs
                     }
 
                     #region check medley tags
-                    if ((headerFlags & EHeaderFlags.MedleyStartBeat) != 0 && (headerFlags & EHeaderFlags.MedleyEndBeat) != 0)
+                    if (_Song.Medley != null && (headerFlags & EHeaderFlags.MedleyStartBeat) != 0 && (headerFlags & EHeaderFlags.MedleyEndBeat) != 0)
                     {
                         if (_Song.Medley.StartBeat > _Song.Medley.EndBeat)
                         {
@@ -518,16 +546,16 @@ namespace VocaluxeLib.Songs
                         }
                     }
 
-                    if (_Song.Preview.Source == EDataSource.None)
+                    if (_Song.Preview == null && (headerFlags & EHeaderFlags.MedleyStartBeat) != 0)
                     {
-                        //PreviewStart is not set or <=0
-                        _Song.Preview.StartTime = (headerFlags & EHeaderFlags.MedleyStartBeat) != 0 ? CBase.Game.GetTimeFromBeats(_Song.Medley.StartBeat, _Song.Bpm) : 0f;
-                        // ReSharper disable CompareOfFloatsByEqualityOperator
-                        _Song.Preview.Source = _Song.Preview.StartTime == 0 ? EDataSource.None : EDataSource.Calculated;
-                        // ReSharper restore CompareOfFloatsByEqualityOperator
+                        _Song.Preview = new CPreview
+                        {
+                            StartTime = CBase.Game.GetTimeFromBeats(_Song.Medley.StartBeat, _Song.Bpm),
+                            Source = EDataSource.Calculated
+                        };
                     }
 
-                    if ((headerFlags & EHeaderFlags.MedleyStartBeat) != 0 && (headerFlags & EHeaderFlags.MedleyEndBeat) != 0)
+                    if (_Song.Medley != null && (headerFlags & EHeaderFlags.MedleyStartBeat) != 0 && (headerFlags & EHeaderFlags.MedleyEndBeat) != 0)
                     {
                         _Song.Medley.Source = EDataSource.Tag;
                         _Song.Medley.FadeInTime = CBase.Settings.GetDefaultMedleyFadeInTime();
@@ -550,19 +578,7 @@ namespace VocaluxeLib.Songs
                 sr.Dispose();
                 _Song._CheckFiles();
 
-                CBase.DataBase.GetDataBaseSongInfos(_Song.Artist, _Song.Title, out _Song.NumPlayed, out _Song.DateAdded, out _Song.DataBaseSongId);
-
-                //Before saving this tags to .txt: Check, if ArtistSorting and Artist are equal, then don't save this tag.
-                if (string.IsNullOrEmpty(_Song.ArtistSorting))
-                {
-                    _Song.ArtistSorting = _Song.Artist;
-                }
-
-                if (string.IsNullOrEmpty(_Song.TitleSorting))
-                {
-                    _Song.TitleSorting = _Song.Title;
-                }
-
+                _Song.Infos = CBase.DataBase.GetSongInfos(_Song.Artist, _Song.Title);
                 return true;
             }
 
